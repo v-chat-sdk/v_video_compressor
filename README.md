@@ -29,7 +29,11 @@ This plugin **focuses exclusively on video compression and thumbnail generation*
 | Platform    | Support             | Minimum Version        | Notes                           |
 | ----------- | ------------------- | ---------------------- | ------------------------------- |
 | **Android** | ✅ **Full Support** | API 21+ (Android 5.0+) | Hardware acceleration available |
-| **iOS**     | ✅ **Full Support** | iOS 11.0+              | Hardware acceleration available |
+| **iOS**     | ✅ **Full Support** | iOS 13.0+              | Hardware acceleration available |
+
+> **iOS is Swift Package Manager only (v3.0.0+).** CocoaPods is no longer supported.
+> Requires Flutter 3.38+; SPM is enabled by default from Flutter 3.44. On Flutter
+> 3.38–3.43, run `flutter config --enable-swift-package-manager` first.
 
 ## 🚀 **Quick Start**
 
@@ -39,10 +43,10 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  v_video_compressor: ^1.2.0
-  file_picker: ^8.0.0 # For video selection
+  v_video_compressor: ^3.0.0
+  file_picker: ^11.0.2 # For video selection
   # OR
-  image_picker: ^1.0.7 # Alternative for video selection
+  image_picker: ^1.2.3 # Alternative for video selection
 ```
 
 ### 2. Platform Setup
@@ -730,7 +734,8 @@ try {
 
 ### iOS
 
-- **Minimum Version**: iOS 11.0
+- **Minimum Version**: iOS 13.0
+- **Dependency Manager**: Swift Package Manager only (Flutter 3.38+; default from 3.44)
 - **Hardware Acceleration**: Available with AVFoundation
 - **Simulator**: Limited acceleration (test on devices for best results)
 - **Background**: May be limited by iOS background execution policies

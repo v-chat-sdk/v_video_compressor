@@ -1,8 +1,28 @@
+## [3.0.0] - 2026-07-15 📦 **Swift Package Manager Only (Breaking)**
+
+### 💥 **Breaking Changes**
+
+- **CocoaPods support removed on iOS**: The podspec has been deleted; the iOS implementation is distributed exclusively via Swift Package Manager. iOS projects that still build with CocoaPods integration must migrate to SPM (the default since Flutter 3.44) before upgrading
+- **Requires Flutter 3.38+**: The plugin depends on the `FlutterFramework` Swift package that the Flutter tool generates from 3.38 onward. On Flutter 3.38–3.43, enable SPM with `flutter config --enable-swift-package-manager`
+- **Minimum iOS version is now 13.0** (matching Flutter 3.38+'s own floor)
+
+### ✨ **New Features**
+
+- **Swift Package Manager support**: The iOS implementation now ships a `Package.swift`, so SPM-based apps resolve this plugin natively — no CocoaPods required
+
+### 🔧 **Technical Implementation**
+
+- Moved iOS sources from `ios/Classes/` to `ios/v_video_compressor/Sources/v_video_compressor/`
+- Added `ios/v_video_compressor/Package.swift` (swift-tools-version 5.9) with the `FlutterFramework` dependency
+- Privacy manifest (`PrivacyInfo.xcprivacy`) is bundled as an SPM resource
+- No Dart or native API changes; Android is unaffected
+
 ## [1.3.0] - 2025-11-22 🎯 **Dimension Alignment & Edge Artifact Fix**
 
 ### ✨ **New Features**
 
 #### **🎯 Automatic Dimension Alignment (Issue #9 Fix)**
+
 - **Fixed edge artifacts**: Compressed videos no longer show colored/black smears on edges
 - **Smart auto-detection**: Automatically detects when dimensions need alignment
 - **16-pixel boundary alignment**: Ensures dimensions divisible by 16 to prevent encoder padding
@@ -23,6 +43,7 @@
 ### 🔧 **Technical Implementation**
 
 #### **Dart Layer**
+
 - Added `VDimensionHandling` enum for configuration options
 - Added `alignTo16()` helper function (public API)
 - Extended `VVideoAdvancedConfig` with `dimensionHandling` parameter
@@ -30,6 +51,7 @@
 - All factory presets now use auto-alignment by default
 
 #### **Android Platform**
+
 - Added `alignTo16()` private helper function
 - Modified `calculateAspectRatioPreservingDimensions()` for smart alignment
 - Smart detection: Only aligns dimensions when `dimension % 16 != 0`
@@ -37,6 +59,7 @@
 - Both quality-based and custom dimension paths now aligned
 
 #### **iOS Platform**
+
 - Added `alignTo16()` private helper function
 - Modified `applyAdvancedComposition()` for smart alignment
 - Integrated into `renderSize` calculation before video composition
@@ -113,6 +136,7 @@ const config = VVideoCompressionConfig.medium(
 ### 🍎 **iOS Platform Improvements**
 
 #### **🔒 App Store Connect Compliance**
+
 - **Fixed ITMS-91054 Error**: Resolved invalid privacy manifest API category declaration
   - Removed invalid `NSPrivacyAccessedAPICategoryPhotoLibrary` from privacy manifest
   - Kept only essential API categories: `FileTimestamp` and `DiskSpace`
@@ -120,6 +144,7 @@ const config = VVideoCompressionConfig.medium(
   - Ensures smooth App Store review process without privacy-related rejections
 
 #### **🎯 Enhanced Video Orientation Handling**
+
 - **Fixed Issue #1**: Resolved video orientation problems during compression
   - Improved `preferredTransform` handling for proper video rotation
   - Enhanced auto-orientation correction with better dimension calculation
@@ -127,6 +152,7 @@ const config = VVideoCompressionConfig.medium(
   - Videos now maintain correct orientation after compression
 
 #### **⚡ Performance & Stability Improvements**
+
 - **Fixed Issue #4**: Enhanced iOS compression engine reliability
   - Added comprehensive input validation before compression starts
   - Implemented disk space checking to prevent compression failures
@@ -135,6 +161,7 @@ const config = VVideoCompressionConfig.medium(
   - Improved background processing stability
 
 #### **🔧 Technical Enhancements**
+
 - **Memory Management**: Added proper `deinit` cleanup and resource management
 - **Input Validation**: Comprehensive parameter validation prevents crashes
 - **Error Handling**: Detailed error messages for debugging (disk space, file access, format issues)
@@ -144,20 +171,24 @@ const config = VVideoCompressionConfig.medium(
 ### 📱 **What This Means for Developers**
 
 #### **App Store Submission**
+
 - ✅ **No Privacy Review Issues**: Your app will pass App Store privacy manifest validation
 - ✅ **No Additional Permissions**: Plugin only uses essential file and disk space APIs
 - ✅ **Smooth Review Process**: Eliminates ITMS-91054 rejection reasons
 
 #### **Video Processing**
+
 - ✅ **Correct Orientation**: Vertical videos stay vertical, horizontal videos stay horizontal
 - ✅ **Better Reliability**: Comprehensive validation prevents compression failures
 - ✅ **Improved Performance**: Better memory management and resource cleanup
 
 #### **Compatibility**
+
 - ✅ **Wider Device Support**: Now supports iOS 12.0+ (previously iOS 13.0+)
 - ✅ **Better Stability**: Enhanced error handling and validation
 
 ### 🔄 **Merged Pull Request #3**
+
 - Integrated community contributions for improved iOS stability
 - Enhanced compression engine with better error handling
 - Improved video orientation detection and correction
@@ -167,11 +198,13 @@ const config = VVideoCompressionConfig.medium(
 **No migration required** - this is a backward-compatible stability update.
 
 **For App Store submissions:**
+
 1. Update to v1.2.1
 2. Rebuild your app
 3. Submit to App Store - privacy manifest issues are resolved
 
 **For video orientation issues:**
+
 ```dart
 // Existing code automatically benefits from orientation fixes
 final result = await compressor.compressVideo(
@@ -186,12 +219,14 @@ final result = await compressor.compressVideo(
 ```
 
 ### 🧪 **Testing**
+
 - ✅ **App Store Validation**: Privacy manifest passes Apple's validation
 - ✅ **Cross-Platform**: Both Android and iOS implementations tested
 - ✅ **Orientation Testing**: Verified with various video orientations
 - ✅ **Memory Testing**: Validated proper resource cleanup
 
 ### 🎯 **Key Benefits**
+
 - **🛡️ App Store Ready**: No privacy manifest issues
 - **📱 Better UX**: Videos maintain correct orientation
 - **⚡ More Stable**: Enhanced error handling and validation

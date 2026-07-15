@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **v_video_compressor** is a professional Flutter plugin for high-quality video compression with real-time progress tracking and thumbnail generation. The plugin uses native platform APIs (Media3 for Android, AVFoundation for iOS) rather than ffmpeg for optimal performance and smaller app size.
 
-**Version**: 1.2.1
-**Platforms**: Android (API 21+), iOS (11.0+)
+**Version**: 3.0.0
+**Platforms**: Android (API 21+), iOS (13.0+ — Swift Package Manager only, requires Flutter 3.38+)
 **Key Features**: Multi-quality compression, real-time progress, global progress stream, thumbnail generation, batch processing
 
 ## Architecture
@@ -30,7 +30,7 @@ The plugin follows Flutter's platform channel pattern with three layers:
    - `VVideoMediaLoader.kt` - Video metadata extraction
    - `VVideoModels.kt` - Kotlin data classes mirroring Dart models
 
-3. **iOS Native** (`ios/Classes/`):
+3. **iOS Native** (`ios/v_video_compressor/Sources/v_video_compressor/`):
    - `VVideoCompressorPlugin.swift` - MethodChannel handler
    - `VVideoCompressionEngine.swift` - Core compression using AVFoundation
    - `VVideoMediaLoader.swift` - Video metadata extraction
@@ -94,13 +94,12 @@ cd example/android
 
 ### iOS-Specific
 
-```bash
-# Install pods
-cd example/ios
-pod install
+iOS uses Swift Package Manager only (no CocoaPods, no `pod install`). The Flutter
+tool resolves the package in `ios/v_video_compressor/` automatically.
 
+```bash
 # Compile iOS code (requires macOS)
-cd ../..
+cd example
 flutter build ios --no-codesign
 ```
 
@@ -122,12 +121,14 @@ flutter build ios --no-codesign
 ### Platform-Specific Compression Logic
 
 **Android** (`VVideoCompressionEngine.kt`):
+
 - Uses Media3 `Transformer` API
 - Hardware acceleration via `DefaultEncoderFactory`
 - Progress calculation: estimated based on bitrate and duration
 - Output: MP4 with H.264/H.265 video, AAC audio
 
 **iOS** (`VVideoCompressionEngine.swift`):
+
 - Uses AVFoundation `AVAssetExportSession`
 - Quality presets: `.AVAssetExportPresetHighestQuality`, `.AVAssetExportPreset1920x1080`, etc.
 - Progress via `exportSession.progress` KVO observation
@@ -149,9 +150,10 @@ When modifying data models, update **all three**:
 
 1. `lib/src/v_video_models.dart` - Dart model with `toMap()`/`fromMap()`
 2. `android/.../VVideoModels.kt` - Kotlin data class with `toMap()`/`fromMap()`
-3. `ios/Classes/VVideoModels.swift` - Swift struct with dictionary conversion
+3. `ios/v_video_compressor/Sources/v_video_compressor/VVideoModels.swift` - Swift struct with dictionary conversion
 
 **Example**: Adding a new compression parameter requires:
+
 - Add to `VVideoAdvancedConfig` in all three files
 - Update `toMap()` and `fromMap()` methods
 - Update validation in `isValid()` method
@@ -167,6 +169,7 @@ The plugin has comprehensive test coverage (95%+):
 - `example/integration_test/` - Integration tests (requires device/simulator)
 
 **Testing Strategy**:
+
 1. Unit tests mock platform calls via `MethodChannelMock`
 2. Integration tests verify actual compression on real videos
 3. Model tests validate serialization/deserialization
@@ -193,6 +196,7 @@ VVideoCompressor.configureLogging(VVideoLogConfig(
 ```
 
 When adding new methods:
+
 - Use `VVideoLogger.methodCall()` at entry
 - Use `VVideoLogger.success()` on completion
 - Use `VVideoLogger.error()` for exceptions
@@ -232,6 +236,7 @@ Method calls use string-based channel names:
 - `v_video_compressor/progress` - EventChannel for progress
 
 **Adding New Methods**:
+
 1. Define in `VVideoCompressorPlatform` interface
 2. Implement in `MethodChannelVVideoCompressor`
 3. Handle in native `VVideoCompressorPlugin` (both platforms)
@@ -250,23 +255,27 @@ The `example/` app demonstrates all features:
 ## Critical Files for Common Tasks
 
 ### Adding a Compression Parameter
+
 1. `lib/src/v_video_models.dart` → `VVideoAdvancedConfig`
 2. `android/.../VVideoModels.kt` → `VVideoAdvancedConfig`
-3. `ios/Classes/VVideoModels.swift` → `VVideoAdvancedConfig`
+3. `ios/v_video_compressor/Sources/v_video_compressor/VVideoModels.swift` → `VVideoAdvancedConfig`
 4. `android/.../VVideoCompressionEngine.kt` → Apply parameter
-5. `ios/Classes/VVideoCompressionEngine.swift` → Apply parameter
+5. `ios/v_video_compressor/Sources/v_video_compressor/VVideoCompressionEngine.swift` → Apply parameter
 
 ### Modifying Progress Tracking
+
 1. `lib/src/v_video_stream_manager.dart` → Stream management
 2. `lib/src/v_video_models.dart` → `VVideoProgressEvent`
 3. `android/.../VVideoCompressorPlugin.kt` → EventChannel emission
-4. `ios/Classes/VVideoCompressorPlugin.swift` → EventChannel emission
+4. `ios/v_video_compressor/Sources/v_video_compressor/VVideoCompressorPlugin.swift` → EventChannel emission
 
 ### Changing Compression Engine Logic
+
 - **Android**: `VVideoCompressionEngine.kt` → `compressVideo()` method
 - **iOS**: `VVideoCompressionEngine.swift` → `compressVideo()` method
 
 ### Adding Thumbnail Extraction Options
+
 1. `lib/src/v_video_models.dart` → `VVideoThumbnailConfig`
 2. Native implementations in both platforms
 3. Update `getVideoThumbnail()` and `getVideoThumbnails()` methods
@@ -280,6 +289,7 @@ This plugin is **focused exclusively** on video compression and thumbnails:
 - **Does NOT**: Include UI components (developers build their own)
 
 **Focus Areas**:
+
 - Professional-grade compression quality
 - Real-time progress with global stream access
 - Advanced configuration for power users

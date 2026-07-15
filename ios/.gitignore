@@ -36,3 +36,8 @@ Icon?
 /Flutter/Generated.xcconfig
 /Flutter/ephemeral/
 /Flutter/flutter_export_environment.sh
+
+# Local-only symlink to the FlutterFramework package the Flutter tool generates
+# inside example/ios/Flutter/ephemeral (lets standalone `swift package resolve`
+# and IDE tooling work). Dangles after `flutter clean` until the next example build.
+/FlutterFramework

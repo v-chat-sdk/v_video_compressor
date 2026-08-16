@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "v_video_compressor",
     platforms: [
-        .iOS("12.0"),
+        .iOS("15.0"),
     ],
     products: [
         .library(

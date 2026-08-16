@@ -1,9 +1,13 @@
-## [Unreleased]
+## [2.2.1] - 2026-08-16
 
 ### Fixed
 
 - Raised the SwiftPM package minimum to iOS 15 so `FlutterFramework` resolves
   with current Flutter toolchains, fixing #22.
+- Honored explicit iOS `videoBitrate` requests with an export-size budget that
+  accounts for the source audio track and the effective trimmed duration.
+- Hardened iOS bitrate validation and size calculations for video-only, trimmed,
+  and H.265 exports without changing default compression behavior.
 
 ### Changed
 

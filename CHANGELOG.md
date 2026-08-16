@@ -1,3 +1,17 @@
+## [Unreleased]
+
+### Fixed
+
+- Raised the SwiftPM package minimum to iOS 15 so `FlutterFramework` resolves
+  with current Flutter toolchains, fixing #22.
+
+### Changed
+
+- Documented separate SwiftPM (iOS 15+) and legacy CocoaPods (iOS 12+)
+  deployment targets.
+- Updated the example app's iOS deployment targets and added regression
+  coverage for the package metadata.
+
 ## [2.2.0] - 2026-07-29
 
 ### Added

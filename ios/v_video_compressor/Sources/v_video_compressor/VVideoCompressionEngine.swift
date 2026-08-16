@@ -242,7 +242,17 @@ class VVideoCompressionEngine {
                 trimAlreadyApplied: trimAlreadyApplied
             )
         }
-        
+
+        // Applied last: trimming above narrows exportSession.timeRange, and the
+        // limit has to be computed over the duration that is actually exported.
+        applyFileLengthLimit(
+            exportSession: exportSession,
+            sourceAsset: asset,
+            exportAsset: exportAsset,
+            config: config,
+            removesAudio: removesAudio
+        )
+
         startProgressTracking(callback: callback)
         
         // iOS Quick Fix: Background processing optimization
@@ -265,6 +275,47 @@ class VVideoCompressionEngine {
                advanced.trimStartMs != nil || advanced.trimEndMs != nil ||
                advanced.removeAudio == true || advanced.customWidth != nil ||
                advanced.customHeight != nil || advanced.autoCorrectOrientation == true
+    }
+
+    /// Caps the export size when the caller explicitly requests a video bitrate.
+    ///
+    /// `AVAssetExportSession` has no per-track bitrate setting, so the requested
+    /// video rate is approximated with a total file-length budget. Exports that
+    /// rely only on a quality preset are deliberately left unchanged.
+    private func applyFileLengthLimit(
+        exportSession: AVAssetExportSession,
+        sourceAsset: AVAsset,
+        exportAsset: AVAsset,
+        config: VVideoCompressionConfig,
+        removesAudio: Bool
+    ) {
+        guard let videoBitrate = config.advanced?.videoBitrate else { return }
+
+        // The exporter does not independently enforce `audioBitrate`. Budget
+        // the audio rate it is expected to preserve so an unenforced setting
+        // cannot accidentally give bandwidth to, or take it from, the video.
+        let audioTrack = sourceAsset.tracks(withMediaType: .audio).first
+        let audioBitrate = VVideoFileLengthBudget.audioBitrate(
+            removesAudio: removesAudio,
+            hasAudioTrack: audioTrack != nil,
+            estimatedAudioBitrate: audioTrack.map { Double($0.estimatedDataRate) }
+        )
+
+        // The default timeRange is 0...+infinity; only a trim makes it numeric.
+        let range = exportSession.timeRange
+        let duration = range.duration.isNumeric ? range.duration : exportAsset.duration
+        let seconds = CMTimeGetSeconds(duration)
+        guard let limit = VVideoFileLengthBudget.fileLengthLimit(
+            explicitVideoBitrate: videoBitrate,
+            audioBitrate: audioBitrate,
+            durationSeconds: seconds
+        ) else { return }
+
+        exportSession.fileLengthLimit = limit
+        print(
+            "VVideoCompressionEngine: fileLengthLimit \(limit)B " +
+            "from video=\(videoBitrate)bps audio=\(audioBitrate)bps over \(seconds)s"
+        )
     }
 
     private func createRotationTransform(angle: Int, sourceSize: CGSize, targetSize: CGSize) -> CGAffineTransform {
@@ -815,7 +866,14 @@ class VVideoCompressionEngine {
         if let advanced = config.advanced {
             if let width = advanced.customWidth, width <= 0 { return false }
             if let height = advanced.customHeight, height <= 0 { return false }
-            if let bitrate = advanced.videoBitrate, bitrate <= 0 { return false }
+            if let bitrate = advanced.videoBitrate,
+               bitrate <= 0 || bitrate > VVideoFileLengthBudget.maximumBitrate {
+                return false
+            }
+            if let bitrate = advanced.audioBitrate,
+               bitrate <= 0 || bitrate > VVideoFileLengthBudget.maximumBitrate {
+                return false
+            }
             if let frameRate = advanced.frameRate, frameRate <= 0 { return false }
         }
         

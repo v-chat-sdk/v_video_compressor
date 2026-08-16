@@ -17,6 +17,13 @@ void main() {
   const inspectionChannel = MethodChannel(
     'v_video_compressor_example/inspection',
   );
+  const requiredBitrateFeatures = <String>{
+    'video bitrate',
+    'video bitrate without audio',
+    'trimmed video bitrate',
+    'trimmed video bitrate without audio',
+    'H.265 video bitrate',
+  };
   final compressor = VVideoCompressor();
   final generatedFiles = <String>{};
   final generatedDirectories = <String>{};
@@ -85,6 +92,24 @@ void main() {
       throw StateError('Native inspection returned null for $path');
     }
     return result;
+  }
+
+  double averageTotalBitrate(Map<String, dynamic> info) {
+    final durationMillis = (info['durationMillis'] as num).toDouble();
+    final fileSizeBytes = (info['fileSizeBytes'] as num).toDouble();
+    return fileSizeBytes * 8 * 1000 / durationMillis;
+  }
+
+  int maximumBudgetedFileSize(
+    Map<String, dynamic> info, {
+    required int videoBitrate,
+    required double audioBitrate,
+  }) {
+    final durationSeconds = (info['durationMillis'] as num).toDouble() / 1000;
+    final requestedBytes = (videoBitrate + audioBitrate) * durationSeconds / 8;
+    // AVAssetExportSession can exceed fileLengthLimit, especially on short
+    // clips. Keep the audit bounded while allowing container/startup overhead.
+    return (requestedBytes * 1.10 + 64 * 1024).ceil();
   }
 
   Future<VVideoCompressionResult> compress(
@@ -486,13 +511,165 @@ void main() {
         () async {
           final result = await compress(
             publicPath,
+            quality: VVideoCompressQuality.low,
             advanced: const VVideoAdvancedConfig(videoBitrate: 250000),
           );
           final info = await inspect(result.compressedFilePath);
           final bitrate = (info['videoEstimatedDataRate'] as num).toDouble();
+          final totalBitrate = averageTotalBitrate(info);
+          final maximumFileSize = maximumBudgetedFileSize(
+            info,
+            videoBitrate: 250000,
+            audioBitrate: (source['audioEstimatedDataRate'] as num).toDouble(),
+          );
           return (
-            passed: bitrate <= 400000,
-            actual: 'estimatedDataRate=${bitrate.round()} bps',
+            passed: (info['fileSizeBytes'] as num) <= maximumFileSize,
+            actual:
+                'estimatedDataRate=${bitrate.round()} bps, '
+                'averageTotalBitrate=${totalBitrate.round()} bps, '
+                'fileSize=${info['fileSizeBytes']} B, '
+                'maximumFileSize=$maximumFileSize B',
+          );
+        },
+      );
+
+      await verify(
+        'video bitrate without audio',
+        'A video-only 250 kbps request does not reserve an audio budget',
+        () async {
+          final result = await compress(
+            publicPath,
+            quality: VVideoCompressQuality.low,
+            advanced: const VVideoAdvancedConfig(
+              videoBitrate: 250000,
+              removeAudio: true,
+            ),
+          );
+          final info = await inspect(result.compressedFilePath);
+          final bitrate = (info['videoEstimatedDataRate'] as num).toDouble();
+          final totalBitrate = averageTotalBitrate(info);
+          final maximumFileSize = maximumBudgetedFileSize(
+            info,
+            videoBitrate: 250000,
+            audioBitrate: 0,
+          );
+          return (
+            passed:
+                info['hasAudio'] == false &&
+                (info['fileSizeBytes'] as num) <= maximumFileSize,
+            actual:
+                'hasAudio=${info['hasAudio']}, '
+                'estimatedDataRate=${bitrate.round()} bps, '
+                'averageTotalBitrate=${totalBitrate.round()} bps, '
+                'fileSize=${info['fileSizeBytes']} B, '
+                'maximumFileSize=$maximumFileSize B',
+          );
+        },
+      );
+
+      await verify(
+        'trimmed video bitrate',
+        'A trimmed 250 kbps request budgets only the exported duration',
+        () async {
+          final result = await compress(
+            publicPath,
+            quality: VVideoCompressQuality.low,
+            advanced: const VVideoAdvancedConfig(
+              videoBitrate: 250000,
+              trimStartMs: 500,
+              trimEndMs: 2500,
+            ),
+          );
+          final info = await inspect(result.compressedFilePath);
+          final bitrate = (info['videoEstimatedDataRate'] as num).toDouble();
+          final durationMs = (info['durationMillis'] as num).toInt();
+          final totalBitrate = averageTotalBitrate(info);
+          final maximumFileSize = maximumBudgetedFileSize(
+            info,
+            videoBitrate: 250000,
+            audioBitrate: (source['audioEstimatedDataRate'] as num).toDouble(),
+          );
+          return (
+            passed:
+                (info['fileSizeBytes'] as num) <= maximumFileSize &&
+                durationMs >= 1700 &&
+                durationMs <= 2300,
+            actual:
+                'durationMs=$durationMs, '
+                'estimatedDataRate=${bitrate.round()} bps, '
+                'averageTotalBitrate=${totalBitrate.round()} bps, '
+                'fileSize=${info['fileSizeBytes']} B, '
+                'maximumFileSize=$maximumFileSize B',
+          );
+        },
+      );
+
+      await verify(
+        'trimmed video bitrate without audio',
+        'A trimmed composition uses its exported duration and no audio budget',
+        () async {
+          final result = await compress(
+            publicPath,
+            quality: VVideoCompressQuality.low,
+            advanced: const VVideoAdvancedConfig(
+              videoBitrate: 250000,
+              removeAudio: true,
+              trimStartMs: 500,
+              trimEndMs: 2500,
+            ),
+          );
+          final info = await inspect(result.compressedFilePath);
+          final durationMs = (info['durationMillis'] as num).toInt();
+          final totalBitrate = averageTotalBitrate(info);
+          final maximumFileSize = maximumBudgetedFileSize(
+            info,
+            videoBitrate: 250000,
+            audioBitrate: 0,
+          );
+          return (
+            passed:
+                info['hasAudio'] == false &&
+                (info['fileSizeBytes'] as num) <= maximumFileSize &&
+                durationMs >= 1700 &&
+                durationMs <= 2300,
+            actual:
+                'hasAudio=${info['hasAudio']}, durationMs=$durationMs, '
+                'averageTotalBitrate=${totalBitrate.round()} bps, '
+                'fileSize=${info['fileSizeBytes']} B, '
+                'maximumFileSize=$maximumFileSize B',
+          );
+        },
+      );
+
+      await verify(
+        'H.265 video bitrate',
+        'A 1 Mbps explicit bitrate budget also applies to H.265 exports',
+        () async {
+          final result = await compress(
+            publicPath,
+            advanced: const VVideoAdvancedConfig(
+              videoBitrate: 1000000,
+              videoCodec: VVideoCodec.h265,
+            ),
+          );
+          final info = await inspect(result.compressedFilePath);
+          final bitrate = (info['videoEstimatedDataRate'] as num).toDouble();
+          final totalBitrate = averageTotalBitrate(info);
+          final codec = info['videoCodec'];
+          final maximumFileSize = maximumBudgetedFileSize(
+            info,
+            videoBitrate: 1000000,
+            audioBitrate: (source['audioEstimatedDataRate'] as num).toDouble(),
+          );
+          return (
+            passed:
+                (codec == 'hvc1' || codec == 'hev1') &&
+                (info['fileSizeBytes'] as num) <= maximumFileSize,
+            actual:
+                'codec=$codec, estimatedDataRate=${bitrate.round()} bps, '
+                'averageTotalBitrate=${totalBitrate.round()} bps, '
+                'fileSize=${info['fileSizeBytes']} B, '
+                'maximumFileSize=$maximumFileSize B',
           );
         },
       );
@@ -1029,6 +1206,19 @@ void main() {
           ifAbsent: () => 1,
         );
       }
+      final bitrateResults = audit
+          .where((entry) => requiredBitrateFeatures.contains(entry['feature']))
+          .toList();
+      final bitrateFailures = bitrateResults
+          .where((entry) => entry['status'] != 'PASS')
+          .toList();
+      expect(bitrateResults, hasLength(requiredBitrateFeatures.length));
+      expect(
+        bitrateFailures,
+        isEmpty,
+        reason:
+            'Required bitrate regressions failed: ${jsonEncode(bitrateFailures)}',
+      );
       // Intentionally machine-readable for the opt-in simulator audit command.
       // ignore: avoid_print
       print('VVC_IOS_AUDIT_SUMMARY|${jsonEncode(summary)}');

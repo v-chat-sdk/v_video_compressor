@@ -642,6 +642,11 @@ VVideoAdvancedConfig(
 )
 ```
 
+On iOS, `videoBitrate` is approximated through AVFoundation's total output-size
+limit and may vary slightly from the requested rate. `audioBitrate` is not an
+independent AVAssetExportSession control; iOS chooses it as part of the export
+preset.
+
 ## 🖼️ **Thumbnail Generation**
 
 ### Single Thumbnail

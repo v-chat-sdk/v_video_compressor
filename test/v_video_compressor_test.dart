@@ -505,6 +505,40 @@ void main() {
         expect(config.isValid(), isTrue);
       });
 
+      test('should reject non-positive video and audio bitrates', () {
+        expect(
+          const VVideoAdvancedConfig(videoBitrate: 0).isValid(),
+          isFalse,
+        );
+        expect(
+          const VVideoAdvancedConfig(videoBitrate: -1).isValid(),
+          isFalse,
+        );
+        expect(
+          const VVideoAdvancedConfig(audioBitrate: 0).isValid(),
+          isFalse,
+        );
+        expect(
+          const VVideoAdvancedConfig(audioBitrate: -1).isValid(),
+          isFalse,
+        );
+        expect(
+          const VVideoAdvancedConfig(videoBitrate: 0x80000000).isValid(),
+          isFalse,
+        );
+        expect(
+          const VVideoAdvancedConfig(audioBitrate: 0x80000000).isValid(),
+          isFalse,
+        );
+        expect(
+          const VVideoAdvancedConfig(
+            videoBitrate: 250000,
+            audioBitrate: 128000,
+          ).isValid(),
+          isTrue,
+        );
+      });
+
       test('should validate autoCorrectOrientation parameter', () {
         final advancedWithOrientation = VVideoAdvancedConfig(
           autoCorrectOrientation: true,

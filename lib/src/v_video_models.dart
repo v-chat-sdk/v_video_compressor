@@ -201,10 +201,22 @@ class VVideoCropRect {
 
 /// Advanced video compression configuration
 class VVideoAdvancedConfig {
-  /// Custom video bitrate in bits per second (overrides quality preset)
+  static const int _maximumNativeBitrate = 0x7fffffff;
+
+  /// Custom video bitrate in bits per second (overrides quality preset).
+  ///
+  /// Must be between 1 and 2,147,483,647.
+  ///
+  /// On iOS this is approximated with an export file-length budget, so the
+  /// encoded bitrate can vary slightly from the requested value.
   final int? videoBitrate;
 
-  /// Custom audio bitrate in bits per second
+  /// Custom audio bitrate in bits per second.
+  ///
+  /// Must be between 1 and 2,147,483,647.
+  ///
+  /// AVAssetExportSession selects the audio bitrate on iOS; this remains an
+  /// independent encoder setting only on platforms that expose that control.
   final int? audioBitrate;
 
   /// Custom resolution width (must be used with height)
@@ -339,6 +351,16 @@ class VVideoAdvancedConfig {
           customHeight! % 2 != 0) {
         return false;
       }
+    }
+
+    if (videoBitrate != null &&
+        (videoBitrate! <= 0 || videoBitrate! > _maximumNativeBitrate)) {
+      return false;
+    }
+
+    if (audioBitrate != null &&
+        (audioBitrate! <= 0 || audioBitrate! > _maximumNativeBitrate)) {
+      return false;
     }
 
     // Frame rate must be positive

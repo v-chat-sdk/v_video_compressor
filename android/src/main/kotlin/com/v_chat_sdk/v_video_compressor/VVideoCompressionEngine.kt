@@ -9,15 +9,18 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.transformer.Composition
+import androidx.media3.transformer.DefaultEncoderFactory
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.InAppMp4Muxer
 import androidx.media3.transformer.Transformer
+import androidx.media3.transformer.VideoEncoderSettings
 import androidx.media3.transformer.Effects
 import androidx.media3.effect.Crop
 import androidx.media3.effect.Presentation
@@ -39,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap
 import android.os.Build
 import android.media.MediaCodecList
 import android.media.MediaCodecInfo
+import android.media.MediaExtractor
 import android.media.MediaFormat
 
 /**
@@ -779,6 +783,100 @@ class VVideoCompressionEngine(private val context: Context) {
     }
     
     /**
+     * Requests an H.264 profile/level that matches the output stream.
+     *
+     * Without an explicit request Media3's DefaultEncoderFactory asks the encoder for the highest
+     * level it advertises (androidx/media#2603), so even a 720p export can be declared as
+     * High@L6.x and be rejected by decoders that stop at L5.x, such as iOS and Safari. The
+     * request is advisory: Media3 drops it when the encoder does not advertise the level, and
+     * encoders may still derive the level from the stream themselves.
+     *
+     * Media3 ignores profile/level below API 24 and defaults to Baseline on API 24-25, so the
+     * request is only made from API 26, where Media3 itself defaults to the High profile.
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun requestH264ProfileLevel(
+        transformerBuilder: Transformer.Builder,
+        videoInfo: VVideoInfo,
+        config: VVideoCompressionConfig,
+        cropPlan: VVideoCropPlan?
+    ) {
+        if (videoInfo.width <= 0 || videoInfo.height <= 0) return
+
+        val (width, height) = cropPlan?.outputSize?.let {
+            Pair(it.width, it.height)
+        } ?: calculateAspectRatioPreservingDimensions(
+            videoInfo.width, videoInfo.height, config.quality,
+            config.advanced?.customWidth, config.advanced?.customHeight
+        )
+
+        val source = readSourceVideoTrack(videoInfo.path)
+        // Media3 selects the HDR profile itself; forcing High would override it.
+        if (source.isHdr) return
+        // The export keeps the source frame rate. When it is unknown, assume 60 fps so the
+        // level is over- rather than under-declared.
+        val frameRate = source.frameRate ?: 60.0
+        val level = VVideoH264Level.minimumLevel(width, height, frameRate) ?: return
+
+        println("VVideoCompressionEngine: Requesting H.264 High profile, level 0x${Integer.toHexString(level)} for ${width}x${height} @ ${frameRate}fps")
+        transformerBuilder.setEncoderFactory(
+            DefaultEncoderFactory.Builder(context)
+                .setRequestedVideoEncoderSettings(
+                    VideoEncoderSettings.Builder()
+                        .setEncodingProfileLevel(
+                            MediaCodecInfo.CodecProfileLevel.AVCProfileHigh,
+                            level
+                        )
+                        .build()
+                )
+                .build()
+        )
+    }
+
+    private data class SourceVideoTrack(val frameRate: Double?, val isHdr: Boolean)
+
+    /**
+     * Reads the frame rate and HDR transfer of the first video track. Either may be unknown.
+     */
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun readSourceVideoTrack(videoPath: String): SourceVideoTrack {
+        val extractor = MediaExtractor()
+        return try {
+            extractor.setDataSource(videoPath)
+            val format = (0 until extractor.trackCount)
+                .map { extractor.getTrackFormat(it) }
+                .firstOrNull { it.getString(MediaFormat.KEY_MIME)?.startsWith("video/") == true }
+                ?: return SourceVideoTrack(frameRate = null, isHdr = false)
+
+            val frameRate = if (format.containsKey(MediaFormat.KEY_FRAME_RATE)) {
+                try {
+                    format.getInteger(MediaFormat.KEY_FRAME_RATE).toDouble()
+                } catch (e: ClassCastException) {
+                    format.getFloat(MediaFormat.KEY_FRAME_RATE).toDouble()
+                }
+            } else {
+                null
+            }
+            val colorTransfer = if (format.containsKey(MediaFormat.KEY_COLOR_TRANSFER)) {
+                format.getInteger(MediaFormat.KEY_COLOR_TRANSFER)
+            } else {
+                null
+            }
+
+            SourceVideoTrack(
+                frameRate = frameRate?.takeIf { it > 0.0 },
+                isHdr = colorTransfer == MediaFormat.COLOR_TRANSFER_ST2084 ||
+                    colorTransfer == MediaFormat.COLOR_TRANSFER_HLG
+            )
+        } catch (e: Exception) {
+            println("VVideoCompressionEngine: Could not read source video track: ${e.message}")
+            SourceVideoTrack(frameRate = null, isHdr = false)
+        } finally {
+            extractor.release()
+        }
+    }
+
+    /**
      * Estimates the compressed file size for a video
      */
     fun estimateCompressionSize(videoInfo: VVideoInfo, quality: VVideoCompressQuality): VVideoCompressionEstimate {
@@ -976,6 +1074,12 @@ class VVideoCompressionEngine(private val context: Context) {
             // 4K FIX: Enhanced codec selection with device capability consideration
             val videoMimeType = selectOptimalVideoCodec(videoInfo, config)
             transformerBuilder.setVideoMimeType(videoMimeType)
+
+            if (videoMimeType == MimeTypes.VIDEO_H264 &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+            ) {
+                requestH264ProfileLevel(transformerBuilder, videoInfo, config, cropPlan)
+            }
 
             // 4K FIX: Validate and adjust configuration before building transformer
             val validatedConfig =

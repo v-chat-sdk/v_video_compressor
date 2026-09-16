@@ -1,3 +1,13 @@
+## [Unreleased]
+
+### Fixed
+
+- Android H.264 exports now request the lowest H.264 level that covers the
+  output resolution and frame rate. Media3 otherwise asks the encoder for the
+  highest level it advertises, so exports could be declared as e.g. High@L6.0
+  and be rejected by decoders capped at Level 5.x, including iOS and Safari
+  (androidx/media#2603).
+
 ## [2.2.1] - 2026-08-16
 
 ### Fixed

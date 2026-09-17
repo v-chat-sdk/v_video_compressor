@@ -877,6 +877,7 @@ try {
 - **Hardware Acceleration**: Available on most devices with Media3
 - **Permissions**: Automatically handled for Android 13+
 - **Background**: Full background compression support
+- **H.264 Level**: Exports request the lowest H.264 level that covers the output resolution and frame rate, so files stay playable on decoders capped at Level 5.x (iOS, Safari)
 
 ### iOS
 

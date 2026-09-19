@@ -207,8 +207,9 @@ class VVideoAdvancedConfig {
   ///
   /// Must be between 1 and 2,147,483,647.
   ///
-  /// On iOS this is approximated with an export file-length budget, so the
-  /// encoded bitrate can vary slightly from the requested value.
+  /// On Android this is requested from the Media3 encoder, and on iOS it is
+  /// approximated with an export file-length budget. Platform encoders may
+  /// produce a bitrate that varies slightly from the requested value.
   final int? videoBitrate;
 
   /// Custom audio bitrate in bits per second.
@@ -225,7 +226,10 @@ class VVideoAdvancedConfig {
   /// Custom resolution height (must be used with width)
   final int? customHeight;
 
-  /// Target frame rate (FPS)
+  /// Target frame rate (FPS).
+  ///
+  /// Android lowers the source frame rate by dropping frames; it does not
+  /// synthesize frames when this value is higher than the source frame rate.
   final double? frameRate;
 
   /// Video codec selection

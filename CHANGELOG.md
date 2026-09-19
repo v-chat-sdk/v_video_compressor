@@ -9,6 +9,9 @@
 
 ### Fixed
 
+- Android compression now applies `videoBitrate` to the Media3 encoder and
+  lowers output frame rate when `frameRate` is below the source frame rate,
+  fixing #26.
 - Android H.264 exports now request the lowest H.264 level that covers the
   output resolution and frame rate. Media3 otherwise asks the encoder for the
   highest level it advertises, so exports could be declared as e.g. High@L6.0

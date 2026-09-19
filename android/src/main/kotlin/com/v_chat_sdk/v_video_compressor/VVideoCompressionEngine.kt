@@ -23,6 +23,7 @@ import androidx.media3.transformer.Transformer
 import androidx.media3.transformer.VideoEncoderSettings
 import androidx.media3.transformer.Effects
 import androidx.media3.effect.Crop
+import androidx.media3.effect.FrameDropEffect
 import androidx.media3.effect.Presentation
 import androidx.media3.effect.ScaleAndRotateTransformation
 import java.io.File
@@ -109,14 +110,6 @@ class VVideoCompressionEngine(private val context: Context) {
     private var deviceCapabilityCache: DeviceCapabilityResult? = null
     
     companion object {
-        // 4K FIX: Enhanced bitrate settings with 4K support
-        private const val BITRATE_4K_HIGH = 8000000      // 8 Mbps for 4K
-        private const val BITRATE_1080P_HIGH = 3500000   // 3.5 Mbps (improved)
-        private const val BITRATE_720P_MEDIUM = 1800000  // 1.8 Mbps (improved)
-        private const val BITRATE_480P_LOW = 500000      // 500 kbps (Issue #7 fix)
-        private const val BITRATE_360P_VERY_LOW = 300000 // 300 kbps (Issue #7 fix)
-        private const val BITRATE_240P_ULTRA_LOW = 200000 // 200 kbps (Issue #7 fix)
-        
         // 4K FIX: Enhanced resolution settings with 4K support
         private const val WIDTH_4K = 3840
         private const val HEIGHT_4K = 2160
@@ -136,9 +129,6 @@ class VVideoCompressionEngine(private val context: Context) {
         private const val AUDIO_BITRATE_LOW = 64000 // 64 kbps for LOW quality
         private const val AUDIO_BITRATE_VERY_LOW = 48000 // 48 kbps for VERY_LOW quality
         private const val AUDIO_BITRATE_ULTRA_LOW = 32000 // 32 kbps for ULTRA_LOW quality
-        
-        // Default frame rate for better compression
-        private const val DEFAULT_FRAME_RATE = 30.0 // 30 FPS
         
         // Progress tracking constants
         private const val PROGRESS_UPDATE_INTERVAL = 100L // milliseconds
@@ -396,7 +386,7 @@ class VVideoCompressionEngine(private val context: Context) {
         width: Int,
         height: Int,
         bitrate: Int,
-        frameRate: Double = DEFAULT_FRAME_RATE,
+        frameRate: Double = VVideoEncodingSettings.DEFAULT_FRAME_RATE,
         mimeType: String = MimeTypes.VIDEO_H264
     ): Boolean {
         return try {
@@ -452,14 +442,15 @@ class VVideoCompressionEngine(private val context: Context) {
             val codecInfo = codecList.codecInfos.firstOrNull { codecInfo ->
                 codecInfo.isEncoder &&
                 codecInfo.supportedTypes.contains(mimeType)
-            } ?: return BITRATE_1080P_HIGH // Fallback default
+            } ?: return VVideoEncodingSettings.BITRATE_1080P_HIGH // Fallback default
 
             val capabilities = codecInfo.getCapabilitiesForType(mimeType)
-            val videoCapabilities = capabilities.videoCapabilities ?: return BITRATE_1080P_HIGH
+            val videoCapabilities = capabilities.videoCapabilities
+                ?: return VVideoEncodingSettings.BITRATE_1080P_HIGH
 
             // Check if codec supports this resolution
             if (!videoCapabilities.isSizeSupported(width, height)) {
-                return BITRATE_1080P_HIGH // Can't handle this resolution
+                return VVideoEncodingSettings.BITRATE_1080P_HIGH // Can't handle this resolution
             }
 
             // Return the maximum supported bitrate for this codec
@@ -468,7 +459,7 @@ class VVideoCompressionEngine(private val context: Context) {
             maxBitrate
         } catch (e: Exception) {
             println("4K FIX: Could not determine max bitrate: ${e.message}")
-            BITRATE_1080P_HIGH // Safe fallback
+            VVideoEncodingSettings.BITRATE_1080P_HIGH // Safe fallback
         }
     }
 
@@ -480,7 +471,8 @@ class VVideoCompressionEngine(private val context: Context) {
         videoInfo: VVideoInfo,
         config: VVideoCompressionConfig,
         videoMimeType: String,
-        cropPlan: VVideoCropPlan? = null
+        cropPlan: VVideoCropPlan? = null,
+        sourceFrameRate: Double? = null
     ): VVideoCompressionConfig {
         // Calculate actual target dimensions and bitrate that will be used
         val (targetWidth, targetHeight) = cropPlan?.outputSize?.let {
@@ -490,28 +482,16 @@ class VVideoCompressionEngine(private val context: Context) {
             config.advanced?.customWidth, config.advanced?.customHeight
         )
 
-        // Determine bitrate from quality and advanced config
-        var targetBitrate = when {
-            config.advanced?.videoBitrate != null -> config.advanced.videoBitrate
-            targetWidth >= 3840 || targetHeight >= 2160 -> {
-                when (config.quality) {
-                    VVideoCompressQuality.HIGH -> BITRATE_4K_HIGH
-                    VVideoCompressQuality.MEDIUM -> (BITRATE_4K_HIGH * 0.6).toInt()
-                    VVideoCompressQuality.LOW -> (BITRATE_4K_HIGH * 0.4).toInt()
-                    VVideoCompressQuality.VERY_LOW -> (BITRATE_4K_HIGH * 0.25).toInt()
-                    VVideoCompressQuality.ULTRA_LOW -> (BITRATE_4K_HIGH * 0.15).toInt()
-                }
-            }
-            else -> when (config.quality) {
-                VVideoCompressQuality.HIGH -> BITRATE_1080P_HIGH
-                VVideoCompressQuality.MEDIUM -> BITRATE_720P_MEDIUM
-                VVideoCompressQuality.LOW -> BITRATE_480P_LOW
-                VVideoCompressQuality.VERY_LOW -> BITRATE_360P_VERY_LOW
-                VVideoCompressQuality.ULTRA_LOW -> BITRATE_240P_ULTRA_LOW
-            }
-        }
-
-        val frameRate = config.advanced?.frameRate ?: DEFAULT_FRAME_RATE
+        val targetBitrate = VVideoEncodingSettings.targetBitrate(
+            targetWidth,
+            targetHeight,
+            config.quality,
+            config.advanced
+        )
+        val frameRate = VVideoEncodingSettings.effectiveFrameRate(
+            config.advanced?.frameRate,
+            sourceFrameRate
+        )
 
         println("4K FIX: Pre-compression validation - ${targetWidth}x${targetHeight} @ ${targetBitrate / 1_000_000}Mbps @ ${frameRate}fps")
 
@@ -783,26 +763,18 @@ class VVideoCompressionEngine(private val context: Context) {
     }
     
     /**
-     * Requests an H.264 profile/level that matches the output stream.
-     *
-     * Without an explicit request Media3's DefaultEncoderFactory asks the encoder for the highest
-     * level it advertises (androidx/media#2603), so even a 720p export can be declared as
-     * High@L6.x and be rejected by decoders that stop at L5.x, such as iOS and Safari. The
-     * request is advisory: Media3 drops it when the encoder does not advertise the level, and
-     * encoders may still derive the level from the stream themselves.
-     *
-     * Media3 ignores profile/level below API 24 and defaults to Baseline on API 24-25, so the
-     * request is only made from API 26, where Media3 itself defaults to the High profile.
+     * Applies the requested bitrate and, where supported, an H.264 profile/level that matches the
+     * output stream. Both settings must share one encoder factory so neither request overwrites the
+     * other.
      */
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun requestH264ProfileLevel(
+    private fun configureVideoEncoder(
         transformerBuilder: Transformer.Builder,
         videoInfo: VVideoInfo,
         config: VVideoCompressionConfig,
-        cropPlan: VVideoCropPlan?
+        cropPlan: VVideoCropPlan?,
+        videoMimeType: String,
+        source: SourceVideoTrack
     ) {
-        if (videoInfo.width <= 0 || videoInfo.height <= 0) return
-
         val (width, height) = cropPlan?.outputSize?.let {
             Pair(it.width, it.height)
         } ?: calculateAspectRatioPreservingDimensions(
@@ -810,25 +782,38 @@ class VVideoCompressionEngine(private val context: Context) {
             config.advanced?.customWidth, config.advanced?.customHeight
         )
 
-        val source = readSourceVideoTrack(videoInfo.path)
-        // Media3 selects the HDR profile itself; forcing High would override it.
-        if (source.isHdr) return
-        // The export keeps the source frame rate. When it is unknown, assume 60 fps so the
-        // level is over- rather than under-declared.
-        val frameRate = source.frameRate ?: 60.0
-        val level = VVideoH264Level.minimumLevel(width, height, frameRate) ?: return
+        val encoderSettings = VideoEncoderSettings.Builder()
+        config.advanced?.videoBitrate?.let { targetBitrate ->
+            encoderSettings.setBitrate(targetBitrate)
+            println("VVideoCompressionEngine: Requesting video bitrate $targetBitrate bps")
+        }
 
-        println("VVideoCompressionEngine: Requesting H.264 High profile, level 0x${Integer.toHexString(level)} for ${width}x${height} @ ${frameRate}fps")
+        if (videoMimeType == MimeTypes.VIDEO_H264 &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            !source.isHdr &&
+            videoInfo.width > 0 &&
+            videoInfo.height > 0
+        ) {
+            val frameRate = VVideoEncodingSettings.effectiveFrameRate(
+                config.advanced?.frameRate,
+                source.frameRate
+            )
+            VVideoH264Level.minimumLevel(width, height, frameRate)?.let { level ->
+                println(
+                    "VVideoCompressionEngine: Requesting H.264 High profile, " +
+                        "level 0x${Integer.toHexString(level)} for ${width}x${height} " +
+                        "@ ${frameRate}fps"
+                )
+                encoderSettings.setEncodingProfileLevel(
+                    MediaCodecInfo.CodecProfileLevel.AVCProfileHigh,
+                    level
+                )
+            }
+        }
+
         transformerBuilder.setEncoderFactory(
             DefaultEncoderFactory.Builder(context)
-                .setRequestedVideoEncoderSettings(
-                    VideoEncoderSettings.Builder()
-                        .setEncodingProfileLevel(
-                            MediaCodecInfo.CodecProfileLevel.AVCProfileHigh,
-                            level
-                        )
-                        .build()
-                )
+                .setRequestedVideoEncoderSettings(encoderSettings.build())
                 .build()
         )
     }
@@ -893,27 +878,12 @@ class VVideoCompressionEngine(private val context: Context) {
     ): VVideoCompressionEstimate {
         val durationSeconds = videoInfo.durationMillis / 1000.0
 
-        // 4K FIX: Enhanced bitrate calculation with 4K support
-        var targetVideoBitrate = advanced?.videoBitrate ?: when {
-            // 4K video handling
-            videoInfo.width >= 3840 || videoInfo.height >= 2160 -> {
-                when (quality) {
-                    VVideoCompressQuality.HIGH -> BITRATE_4K_HIGH
-                    VVideoCompressQuality.MEDIUM -> (BITRATE_4K_HIGH * 0.6).toInt() // 4.8 Mbps
-                    VVideoCompressQuality.LOW -> (BITRATE_4K_HIGH * 0.4).toInt() // 3.2 Mbps
-                    VVideoCompressQuality.VERY_LOW -> (BITRATE_4K_HIGH * 0.25).toInt() // 2 Mbps
-                    VVideoCompressQuality.ULTRA_LOW -> (BITRATE_4K_HIGH * 0.15).toInt() // 1.2 Mbps
-                }
-            }
-            // Standard quality handling
-            else -> when (quality) {
-                VVideoCompressQuality.HIGH -> BITRATE_1080P_HIGH
-                VVideoCompressQuality.MEDIUM -> BITRATE_720P_MEDIUM
-                VVideoCompressQuality.LOW -> BITRATE_480P_LOW
-                VVideoCompressQuality.VERY_LOW -> BITRATE_360P_VERY_LOW
-                VVideoCompressQuality.ULTRA_LOW -> BITRATE_240P_ULTRA_LOW
-            }
-        }
+        var targetVideoBitrate = VVideoEncodingSettings.targetBitrate(
+            videoInfo.width,
+            videoInfo.height,
+            quality,
+            advanced
+        )
 
         // Apply resolution scaling (Android Quick Fix improvement)
         val (targetWidth, targetHeight) = calculateAspectRatioPreservingDimensions(
@@ -922,7 +892,7 @@ class VVideoCompressionEngine(private val context: Context) {
         )
         val originalPixels = videoInfo.width * videoInfo.height
         val targetPixels = targetWidth * targetHeight
-        if (targetPixels < originalPixels) {
+        if (advanced?.videoBitrate == null && targetPixels < originalPixels) {
             val pixelRatio = targetPixels.toFloat() / originalPixels
             targetVideoBitrate = (targetVideoBitrate * pixelRatio * 0.9f).toInt()  // Issue #7 fix: reduce not increase
         }
@@ -1061,29 +1031,54 @@ class VVideoCompressionEngine(private val context: Context) {
                     )
                 }
 
-            // Create one edited item containing clipping, rotation, crop and sizing.
-            val editedMediaItem =
-                createEditedMediaItemWithQuality(mediaItem, videoInfo, config, cropPlan)
-            
+            val sourceVideoTrack = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                readSourceVideoTrack(videoInfo.path)
+            } else {
+                SourceVideoTrack(frameRate = null, isHdr = false)
+            }
+
+            // 4K FIX: Enhanced codec selection with device capability consideration
+            val videoMimeType = selectOptimalVideoCodec(
+                videoInfo,
+                config,
+                sourceVideoTrack.frameRate
+            )
+
+            // Validate before building effects or encoder settings so any device-specific
+            // bitrate adjustment reaches the actual Media3 export.
+            val validatedConfig =
+                validateAndAdjustConfiguration(
+                    videoInfo,
+                    config,
+                    videoMimeType,
+                    cropPlan,
+                    sourceVideoTrack.frameRate
+                )
+
+            // Create one edited item containing clipping, frame dropping, rotation, crop and sizing.
+            val editedMediaItem = createEditedMediaItemWithQuality(
+                mediaItem,
+                videoInfo,
+                validatedConfig,
+                cropPlan,
+                sourceVideoTrack.frameRate
+            )
+
             // Configure transformer with advanced settings
             val transformerBuilder = Transformer.Builder(context)
                 // Avoid device-specific android.media.MediaMuxer failures by
                 // using Media3's in-app MP4 writer.
                 .setMuxerFactory(InAppMp4Muxer.Factory())
-            
-            // 4K FIX: Enhanced codec selection with device capability consideration
-            val videoMimeType = selectOptimalVideoCodec(videoInfo, config)
-            transformerBuilder.setVideoMimeType(videoMimeType)
+                .setVideoMimeType(videoMimeType)
 
-            if (videoMimeType == MimeTypes.VIDEO_H264 &&
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-            ) {
-                requestH264ProfileLevel(transformerBuilder, videoInfo, config, cropPlan)
-            }
-
-            // 4K FIX: Validate and adjust configuration before building transformer
-            val validatedConfig =
-                validateAndAdjustConfiguration(videoInfo, config, videoMimeType, cropPlan)
+            configureVideoEncoder(
+                transformerBuilder,
+                videoInfo,
+                validatedConfig,
+                cropPlan,
+                videoMimeType,
+                sourceVideoTrack
+            )
 
             // Apply audio codec settings if audio is not removed
             if (validatedConfig.advanced?.removeAudio != true) {
@@ -1319,7 +1314,8 @@ class VVideoCompressionEngine(private val context: Context) {
      */
     private fun selectOptimalVideoCodec(
         videoInfo: VVideoInfo,
-        config: VVideoCompressionConfig
+        config: VVideoCompressionConfig,
+        sourceFrameRate: Double? = null
     ): String {
         val is4K = videoInfo.width >= 3840 || videoInfo.height >= 2160
 
@@ -1329,27 +1325,16 @@ class VVideoCompressionEngine(private val context: Context) {
             config.advanced?.customWidth, config.advanced?.customHeight
         )
 
-        val targetBitrate = when {
-            config.advanced?.videoBitrate != null -> config.advanced.videoBitrate
-            targetWidth >= 3840 || targetHeight >= 2160 -> {
-                when (config.quality) {
-                    VVideoCompressQuality.HIGH -> BITRATE_4K_HIGH
-                    VVideoCompressQuality.MEDIUM -> (BITRATE_4K_HIGH * 0.6).toInt()
-                    VVideoCompressQuality.LOW -> (BITRATE_4K_HIGH * 0.4).toInt()
-                    VVideoCompressQuality.VERY_LOW -> (BITRATE_4K_HIGH * 0.25).toInt()
-                    VVideoCompressQuality.ULTRA_LOW -> (BITRATE_4K_HIGH * 0.15).toInt()
-                }
-            }
-            else -> when (config.quality) {
-                VVideoCompressQuality.HIGH -> BITRATE_1080P_HIGH
-                VVideoCompressQuality.MEDIUM -> BITRATE_720P_MEDIUM
-                VVideoCompressQuality.LOW -> BITRATE_480P_LOW
-                VVideoCompressQuality.VERY_LOW -> BITRATE_360P_VERY_LOW
-                VVideoCompressQuality.ULTRA_LOW -> BITRATE_240P_ULTRA_LOW
-            }
-        }
-
-        val frameRate = config.advanced?.frameRate ?: DEFAULT_FRAME_RATE
+        val targetBitrate = VVideoEncodingSettings.targetBitrate(
+            targetWidth,
+            targetHeight,
+            config.quality,
+            config.advanced
+        )
+        val frameRate = VVideoEncodingSettings.effectiveFrameRate(
+            config.advanced?.frameRate,
+            sourceFrameRate
+        )
 
         // If user explicitly requested a codec, validate and fallback if needed
         config.advanced?.videoCodec?.let { requestedCodec ->
@@ -1732,16 +1717,12 @@ class VVideoCompressionEngine(private val context: Context) {
             quality
         )
         
-        val baseBitrate: Int = when (quality) {
-            VVideoCompressQuality.HIGH -> BITRATE_1080P_HIGH
-            VVideoCompressQuality.MEDIUM -> BITRATE_720P_MEDIUM
-            VVideoCompressQuality.LOW -> BITRATE_480P_LOW
-            VVideoCompressQuality.VERY_LOW -> BITRATE_360P_VERY_LOW
-            VVideoCompressQuality.ULTRA_LOW -> BITRATE_240P_ULTRA_LOW
-        }
-        
-        // Apply optimizations for even smaller file sizes
-        val optimizedBitrate = getOptimizedBitrate(baseBitrate, advanced)
+        val optimizedBitrate = VVideoEncodingSettings.targetBitrate(
+            width,
+            height,
+            quality,
+            advanced
+        )
         
         return Triple(width, height, optimizedBitrate)
     }
@@ -1753,7 +1734,8 @@ class VVideoCompressionEngine(private val context: Context) {
         mediaItem: MediaItem, 
         video: VVideoInfo,
         config: VVideoCompressionConfig,
-        cropPlan: VVideoCropPlan? = null
+        cropPlan: VVideoCropPlan? = null,
+        sourceFrameRate: Double? = null
     ): EditedMediaItem {
         val advanced = config.advanced
         
@@ -1809,6 +1791,11 @@ class VVideoCompressionEngine(private val context: Context) {
         }
         
         val videoEffects = mutableListOf<androidx.media3.common.Effect>()
+
+        VVideoEncodingSettings.frameDropTarget(advanced?.frameRate, sourceFrameRate)?.let {
+            videoEffects.add(FrameDropEffect.createDefaultFrameDropEffect(it.toFloat()))
+            println("VVideoCompressionEngine: Requesting output frame rate ${it}fps")
+        }
 
         // ORIENTATION FIX: Apply rotation BEFORE presentation scaling
         if (finalRotation != 0) {
@@ -2038,11 +2025,8 @@ class VVideoCompressionEngine(private val context: Context) {
             }
         }
         
-        // Apply frame rate reduction if specified
-        if (advanced.reducedFrameRate != null && advanced.reducedFrameRate < DEFAULT_FRAME_RATE) {
-            // Frame rate reduction will be handled in the effects pipeline
-            // This is implemented in the createEditedMediaItemWithQuality method
-        }
+        // reducedFrameRate is accounted for by the bitrate planner. The explicit
+        // frameRate setting controls output frame dropping in the effects pipeline.
         
         // Apply mono audio conversion if specified
         if (advanced.monoAudio == true) {
@@ -2055,41 +2039,6 @@ class VVideoCompressionEngine(private val context: Context) {
             // VBR provides better compression efficiency than CBR
             // This is handled through the codec configuration
         }
-    }
-
-    /**
-     * Gets optimized bitrate based on advanced settings
-     */
-    private fun getOptimizedBitrate(
-        baseBitrate: Int,
-        advanced: VVideoAdvancedConfig?
-    ): Int {
-        if (advanced == null) return baseBitrate
-        
-        var optimizedBitrate = baseBitrate
-        
-        // Apply aggressive compression bitrate reduction
-        if (advanced.aggressiveCompression == true) {
-            optimizedBitrate = (optimizedBitrate * 0.7f).toInt() // 30% reduction
-        }
-        
-        // Apply frame rate based reduction
-        if (advanced.reducedFrameRate != null && advanced.reducedFrameRate < DEFAULT_FRAME_RATE) {
-            val frameRateRatio = advanced.reducedFrameRate / DEFAULT_FRAME_RATE
-            optimizedBitrate = (optimizedBitrate * frameRateRatio).toInt()
-        }
-        
-        // Apply variable bitrate optimization
-        if (advanced.variableBitrate == true) {
-            optimizedBitrate = (optimizedBitrate * 0.85f).toInt() // VBR typically saves 15%
-        }
-        
-        // Use custom bitrate if specified
-        if (advanced.videoBitrate != null) {
-            optimizedBitrate = advanced.videoBitrate
-        }
-        
-        return maxOf(optimizedBitrate, 100000) // Minimum 100 kbps
     }
 
     /**

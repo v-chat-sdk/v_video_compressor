@@ -1,0 +1,59 @@
+name: Android compatibility
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: agp-9-compatibility
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4
+          cache: true
+
+      - name: Install package dependencies
+        run: flutter pub get
+
+      - name: Analyze package
+        run: flutter analyze
+
+      - name: Run Dart tests
+        run: flutter test
+
+      - name: Install example dependencies
+        working-directory: example
+        run: flutter pub get
+
+      - name: Build complete example in KGP compatibility mode
+        working-directory: example
+        run: flutter build apk --debug
+
+      - name: Run Android plugin tests and lint
+        working-directory: example/android
+        run: ./gradlew :v_video_compressor:testDebugUnitTest lintDebug
+
+      - name: Verify AGP 9 built-in Kotlin integration
+        env:
+          # Flutter 3.47.4 incorrectly validates AGP's bundled Kotlin as if it
+          # were an independently upgradeable KGP version. Remove this override
+          # after https://github.com/flutter/flutter/issues/192167 is fixed.
+          FLUTTER_ANDROID_SKIP_BUILD_DEPENDENCY_VALIDATION: "true"
+        run: tool/verify_android_built_in_kotlin.sh

@@ -32,6 +32,10 @@ This plugin **focuses exclusively on video compression and thumbnail generation*
 | **iOS (SwiftPM)**    | ✅ **Full Support** | iOS 15.0+              | Current Flutter toolchains         |
 | **iOS (CocoaPods)**  | ✅ **Full Support** | iOS 12.0+              | Legacy Flutter toolchain metadata  |
 
+The package requires Flutter 3.44 or newer and Dart 3.12 or newer. Android
+apps can use either Flutter's legacy KGP compatibility mode or AGP 9 built-in
+Kotlin; enabling built-in Kotlin requires Flutter 3.47 or newer.
+
 ## 🚀 **Quick Start**
 
 ### 1. Installation

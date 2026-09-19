@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+### Changed
+
+- Migrated the Android plugin away from applying KGP so it supports AGP 9
+  built-in Kotlin, fixing #25. This raises the minimum supported toolchain to
+  Flutter 3.44 and Dart 3.12; enabling built-in Kotlin in an app requires
+  Flutter 3.47 or newer.
+
 ### Fixed
 
 - Android H.264 exports now request the lowest H.264 level that covers the

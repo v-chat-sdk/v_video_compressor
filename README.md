@@ -44,7 +44,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  v_video_compressor: ^2.2.2
+  v_video_compressor: ^2.2.3
   file_picker: ^8.0.0 # For video selection
   # OR
   image_picker: ^1.0.7 # Alternative for video selection

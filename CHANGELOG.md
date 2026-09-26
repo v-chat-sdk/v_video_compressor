@@ -1,3 +1,19 @@
+## [2.2.3] - 2026-09-26
+
+### Fixed
+
+- iOS now honors `advanced.frameRate` without a crop, including resize, trim,
+  rotation, orientation correction, and frame-rate-only requests, fixing #31.
+  Crop and non-crop compositions share the existing integer frame-rate rounding
+  and 30 FPS default.
+- Reject non-finite or overflowing iOS frame rates before converting to a
+  native time scale, avoiding a crash.
+
+### Documentation
+
+- Clarified iOS frame-rate rounding and non-crop dimension alignment in the
+  advanced configuration API documentation.
+
 ## [2.2.2] - 2026-09-20
 
 ### Changed

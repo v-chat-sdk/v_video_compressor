@@ -220,13 +220,17 @@ class VVideoAdvancedConfig {
   /// independent encoder setting only on platforms that expose that control.
   final int? audioBitrate;
 
-  /// Custom resolution width (must be used with height)
+  /// Custom resolution width (must be used with height).
+  /// On iOS without a crop, output dimensions round down to multiples of 16.
   final int? customWidth;
 
-  /// Custom resolution height (must be used with width)
+  /// Custom resolution height (must be used with width).
+  /// On iOS without a crop, 1080 becomes 1072 due to 16-pixel alignment.
   final int? customHeight;
 
   /// Target frame rate (FPS).
+  /// iOS rounds to the nearest integer, with a minimum of 1 FPS.
+  /// When omitted, iOS compositions use 30 FPS.
   ///
   /// Android lowers the source frame rate by dropping frames; it does not
   /// synthesize frames when this value is higher than the source frame rate.

@@ -1,3 +1,13 @@
+## [Unreleased]
+
+### Fixed
+
+- Android progress now uses Media3's own export progress
+  (`Transformer.getProgress`) when it is available. The previous estimate
+  (elapsed time and output size) could stop at about 66% on long videos and
+  lag far behind on short ones; it remains as a fallback, and reported
+  progress never goes backwards.
+
 ## [2.2.3] - 2026-09-26
 
 ### Fixed

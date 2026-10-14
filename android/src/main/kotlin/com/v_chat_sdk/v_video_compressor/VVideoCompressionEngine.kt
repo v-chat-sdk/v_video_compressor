@@ -19,6 +19,7 @@ import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.InAppMp4Muxer
+import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.Transformer
 import androidx.media3.transformer.VideoEncoderSettings
 import androidx.media3.transformer.Effects
@@ -92,6 +93,25 @@ data class CpuAnalysisResult(
 class VVideoCompressionEngine(private val context: Context) {
     
     private var transformer: Transformer? = null
+
+    // Media3's own export progress, read on the thread the Transformer was
+    // built on (the main thread). Used whenever it's available; the estimate
+    // below is only a fallback (it could stall at 66.5% and lag well behind).
+    private val progressHolder = ProgressHolder()
+
+    private fun media3Progress(): Float? {
+        val current = transformer ?: return null
+        return try {
+            if (current.getProgress(progressHolder) == Transformer.PROGRESS_STATE_AVAILABLE) {
+                (progressHolder.progress / 100f).coerceIn(0f, 0.99f)
+            } else {
+                null
+            }
+        } catch (e: IllegalStateException) {
+            null
+        }
+    }
+
     private var progressJob: Job? = null
     private var isCompressionActive = AtomicBoolean(false)
     private var isCancelled = AtomicBoolean(false)
@@ -1439,6 +1459,7 @@ class VVideoCompressionEngine(private val context: Context) {
             val videoDurationMs = videoInfo.durationMillis
             val originalFileSize = videoInfo.fileSizeBytes
             var lastMemoryCheck = 0L
+            var reportedProgress = 0f
             
             // Initial delay to let compression start
             delay(INITIAL_PROGRESS_DELAY)
@@ -1488,10 +1509,14 @@ class VVideoCompressionEngine(private val context: Context) {
                     // Apply smoothing and constraints
                     val smoothedProgress = hybridProgress.coerceIn(0f, 0.98f) // Never show 100% until complete
                     
-                    // Send progress update on main thread with batching
+                    // Send progress update on main thread with batching.
+                    // Media3's real progress wins when it has one; never go
+                    // backwards when switching from the estimate.
                     withContext(Dispatchers.Main) {
                         try {
-                            callback.onProgress(smoothedProgress)
+                            val progress = media3Progress() ?: smoothedProgress
+                            reportedProgress = maxOf(reportedProgress, progress)
+                            callback.onProgress(reportedProgress)
                         } catch (e: Exception) {
                             // Ignore callback errors
                         }

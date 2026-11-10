@@ -8,6 +8,8 @@
   videos or lag behind short exports.
 - Keep the previous estimate as a fallback when Media3 progress is unavailable,
   prevent progress from moving backwards, and reserve 100% for completion.
+- Disable unnecessary Jetifier in the AndroidX example so Android lint can
+  inspect current transitive test dependencies without bytecode rewrite errors.
 
 ### Documentation
 

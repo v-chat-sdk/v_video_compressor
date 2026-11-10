@@ -320,42 +320,34 @@ void main() {
       );
 
       for (final quality in VVideoCompressQuality.values) {
-        await verify(
-          'quality ${quality.value}',
-          'Export is playable with video and audio',
-          () async {
-            final result = await compress(publicPath, quality: quality);
-            final info = await inspect(result.compressedFilePath);
-            final passed =
-                info['isPlayable'] == true &&
-                info['hasVideo'] == true &&
-                info['hasAudio'] == true;
-            return (
-              passed: passed,
-              actual:
-                  '${info['width']}x${info['height']}, ${info['fileSizeBytes']} B',
-            );
-          },
-        );
+        await verify('quality ${quality.value}', 'Export is playable with video and audio', () async {
+          final result = await compress(publicPath, quality: quality);
+          final info = await inspect(result.compressedFilePath);
+          final passed =
+              info['isPlayable'] == true &&
+              info['hasVideo'] == true &&
+              info['hasAudio'] == true;
+          return (
+            passed: passed,
+            actual:
+                '${info['width']}x${info['height']}, ${info['fileSizeBytes']} B',
+          );
+        });
       }
 
-      await verify(
-        'compressedResolution result',
-        'Result metadata reports the actual encoded dimensions',
-        () async {
-          final result = await compress(
-            publicPath,
-            quality: VVideoCompressQuality.low,
-          );
-          final info = await inspect(result.compressedFilePath);
-          final actualDimensions = '${info['width']}x${info['height']}';
-          return (
-            passed: result.compressedResolution == actualDimensions,
-            actual:
-                'result=${result.compressedResolution}, encoded=$actualDimensions',
-          );
-        },
-      );
+      await verify('compressedResolution result', 'Result metadata reports the actual encoded dimensions', () async {
+        final result = await compress(
+          publicPath,
+          quality: VVideoCompressQuality.low,
+        );
+        final info = await inspect(result.compressedFilePath);
+        final actualDimensions = '${info['width']}x${info['height']}';
+        return (
+          passed: result.compressedResolution == actualDimensions,
+          actual:
+              'result=${result.compressedResolution}, encoded=$actualDimensions',
+        );
+      });
 
       await verify(
         'custom output directory',
@@ -377,59 +369,47 @@ void main() {
         },
       );
 
-      await verify(
-        'deleteOriginal',
-        'Successful export deletes the copied source file',
-        () async {
-          final input = await File(quadrantPath).copy(
-            '${Directory.systemTemp.path}/vvc_delete_source_'
-            '${DateTime.now().microsecondsSinceEpoch}.mp4',
-          );
-          generatedFiles.add(input.path);
-          final result = await compress(input.path, deleteOriginal: true);
-          return (
-            passed: !await input.exists(),
-            actual:
-                'inputExists=${await input.exists()}, output=${result.compressedFilePath}',
-          );
-        },
-      );
+      await verify('deleteOriginal', 'Successful export deletes the copied source file', () async {
+        final input = await File(quadrantPath).copy(
+          '${Directory.systemTemp.path}/vvc_delete_source_'
+          '${DateTime.now().microsecondsSinceEpoch}.mp4',
+        );
+        generatedFiles.add(input.path);
+        final result = await compress(input.path, deleteOriginal: true);
+        return (
+          passed: !await input.exists(),
+          actual:
+              'inputExists=${await input.exists()}, output=${result.compressedFilePath}',
+        );
+      });
 
-      await verify(
-        'fallback without edits',
-        'A non-beneficial no-edit export may return the original',
-        () async {
-          final result = await compress(quadrantPath, fallback: true);
-          return (
-            passed: result.usedOriginalFile,
-            actual:
-                'usedOriginalFile=${result.usedOriginalFile}, ratio=${result.compressionRatio}',
-          );
-        },
-      );
+      await verify('fallback without edits', 'A non-beneficial no-edit export may return the original', () async {
+        final result = await compress(quadrantPath, fallback: true);
+        return (
+          passed: result.usedOriginalFile,
+          actual:
+              'usedOriginalFile=${result.usedOriginalFile}, ratio=${result.compressionRatio}',
+        );
+      });
 
-      await verify(
-        'fallback with trim',
-        'A time edit can never return the unedited original',
-        () async {
-          final result = await compress(
-            quadrantPath,
-            fallback: true,
-            advanced: const VVideoAdvancedConfig(
-              trimStartMs: 500,
-              trimEndMs: 2500,
-            ),
-          );
-          final info = await inspect(result.compressedFilePath);
-          return (
-            passed:
-                !result.usedOriginalFile &&
-                ((info['durationMillis'] as int) - 2000).abs() <= 300,
-            actual:
-                'usedOriginalFile=${result.usedOriginalFile}, duration=${info['durationMillis']}ms',
-          );
-        },
-      );
+      await verify('fallback with trim', 'A time edit can never return the unedited original', () async {
+        final result = await compress(
+          quadrantPath,
+          fallback: true,
+          advanced: const VVideoAdvancedConfig(
+            trimStartMs: 500,
+            trimEndMs: 2500,
+          ),
+        );
+        final info = await inspect(result.compressedFilePath);
+        return (
+          passed:
+              !result.usedOriginalFile &&
+              ((info['durationMillis'] as int) - 2000).abs() <= 300,
+          actual:
+              'usedOriginalFile=${result.usedOriginalFile}, duration=${info['durationMillis']}ms',
+        );
+      });
 
       for (final entry in <(String, bool, VVideoAdvancedConfig?)>[
         ('includeAudio=false', false, null),
@@ -798,55 +778,47 @@ void main() {
       );
 
       for (final rotation in [0, 90, 180, 270]) {
-        await verify(
-          'explicit rotation $rotation',
-          'Output is playable with the expected displayed dimensions',
-          () async {
-            final result = await compress(
-              quadrantPath,
-              advanced: VVideoAdvancedConfig(
-                rotation: rotation,
-                cropRect: const VVideoCropRect(
-                  left: 0,
-                  top: 0,
-                  right: 0.8,
-                  bottom: 0.8,
-                ),
-              ),
-            );
-            final info = await inspect(result.compressedFilePath);
-            final swaps = rotation == 90 || rotation == 270;
-            return (
-              passed:
-                  info['isPlayable'] == true &&
-                  (swaps
-                      ? (info['height'] as int) > (info['width'] as int)
-                      : (info['width'] as int) > (info['height'] as int)),
-              actual:
-                  '${info['width']}x${info['height']}, rotation=${info['rotation']}',
-            );
-          },
-        );
-      }
-
-      await verify(
-        'preferred-transform orientation',
-        'Portrait metadata remains portrait and playable',
-        () async {
+        await verify('explicit rotation $rotation', 'Output is playable with the expected displayed dimensions', () async {
           final result = await compress(
-            portraitPath,
-            advanced: const VVideoAdvancedConfig(autoCorrectOrientation: true),
+            quadrantPath,
+            advanced: VVideoAdvancedConfig(
+              rotation: rotation,
+              cropRect: const VVideoCropRect(
+                left: 0,
+                top: 0,
+                right: 0.8,
+                bottom: 0.8,
+              ),
+            ),
           );
           final info = await inspect(result.compressedFilePath);
+          final swaps = rotation == 90 || rotation == 270;
           return (
             passed:
                 info['isPlayable'] == true &&
-                (info['height'] as int) > (info['width'] as int),
+                (swaps
+                    ? (info['height'] as int) > (info['width'] as int)
+                    : (info['width'] as int) > (info['height'] as int)),
             actual:
                 '${info['width']}x${info['height']}, rotation=${info['rotation']}',
           );
-        },
-      );
+        });
+      }
+
+      await verify('preferred-transform orientation', 'Portrait metadata remains portrait and playable', () async {
+        final result = await compress(
+          portraitPath,
+          advanced: const VVideoAdvancedConfig(autoCorrectOrientation: true),
+        );
+        final info = await inspect(result.compressedFilePath);
+        return (
+          passed:
+              info['isPlayable'] == true &&
+              (info['height'] as int) > (info['width'] as int),
+          actual:
+              '${info['width']}x${info['height']}, rotation=${info['rotation']}',
+        );
+      });
 
       for (final trim in <(String, int?, int?, int)>[
         ('trim start and end', 500, 2500, 2000),
@@ -1137,66 +1109,58 @@ void main() {
         },
       );
 
-      await verify(
-        'progress and isCompressing',
-        'Compression reports active state and emits progress through completion',
-        () async {
-          final progress = <double>[];
-          final subscription = VVideoCompressor.progressStream.listen(
-            (event) => progress.add(event.progress),
-          );
-          var completed = false;
-          final future = compress(
-            publicPath,
-            quality: VVideoCompressQuality.low,
-          ).whenComplete(() => completed = true);
-          var active = false;
-          while (!completed && !active) {
-            active = await compressor.isCompressing();
-            if (!active) {
-              await Future<void>.delayed(const Duration(milliseconds: 2));
-            }
+      await verify('progress and isCompressing', 'Compression reports active state and emits progress through completion', () async {
+        final progress = <double>[];
+        final subscription = VVideoCompressor.progressStream.listen(
+          (event) => progress.add(event.progress),
+        );
+        var completed = false;
+        final future = compress(
+          publicPath,
+          quality: VVideoCompressQuality.low,
+        ).whenComplete(() => completed = true);
+        var active = false;
+        while (!completed && !active) {
+          active = await compressor.isCompressing();
+          if (!active) {
+            await Future<void>.delayed(const Duration(milliseconds: 2));
           }
-          await future;
-          await Future<void>.delayed(const Duration(milliseconds: 100));
-          await subscription.cancel();
-          return (
-            passed: active && progress.isNotEmpty && progress.last >= 0.99,
-            actual:
-                'activeDuringExport=$active, events=${progress.length}, last=${progress.isEmpty ? null : progress.last}',
-          );
-        },
-      );
+        }
+        await future;
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await subscription.cancel();
+        return (
+          passed: active && progress.isNotEmpty && progress.last >= 0.99,
+          actual:
+              'activeDuringExport=$active, events=${progress.length}, last=${progress.isEmpty ? null : progress.last}',
+        );
+      });
 
-      await verify(
-        'cancellation',
-        'An active export can be cancelled and leaves no successful result',
-        () async {
-          final future = compressor.compressVideo(
-            publicPath,
-            const VVideoCompressionConfig(
-              quality: VVideoCompressQuality.low,
-              fallbackToOriginalIfNotSmaller: false,
-            ),
-          );
-          var activeBeforeCancel = false;
-          final deadline = DateTime.now().add(const Duration(seconds: 2));
-          while (!activeBeforeCancel && DateTime.now().isBefore(deadline)) {
-            activeBeforeCancel = await compressor.isCompressing();
-            if (!activeBeforeCancel) {
-              await Future<void>.delayed(const Duration(milliseconds: 2));
-            }
+      await verify('cancellation', 'An active export can be cancelled and leaves no successful result', () async {
+        final future = compressor.compressVideo(
+          publicPath,
+          const VVideoCompressionConfig(
+            quality: VVideoCompressQuality.low,
+            fallbackToOriginalIfNotSmaller: false,
+          ),
+        );
+        var activeBeforeCancel = false;
+        final deadline = DateTime.now().add(const Duration(seconds: 2));
+        while (!activeBeforeCancel && DateTime.now().isBefore(deadline)) {
+          activeBeforeCancel = await compressor.isCompressing();
+          if (!activeBeforeCancel) {
+            await Future<void>.delayed(const Duration(milliseconds: 2));
           }
-          await compressor.cancelCompression();
-          final result = await future;
-          final activeAfterCancel = await compressor.isCompressing();
-          return (
-            passed: activeBeforeCancel && !activeAfterCancel && result == null,
-            actual:
-                'activeBefore=$activeBeforeCancel, activeAfter=$activeAfterCancel, result=$result',
-          );
-        },
-      );
+        }
+        await compressor.cancelCompression();
+        final result = await future;
+        final activeAfterCancel = await compressor.isCompressing();
+        return (
+          passed: activeBeforeCancel && !activeAfterCancel && result == null,
+          actual:
+              'activeBefore=$activeBeforeCancel, activeAfter=$activeAfterCancel, result=$result',
+        );
+      });
 
       final summary = <String, int>{};
       for (final entry in audit) {

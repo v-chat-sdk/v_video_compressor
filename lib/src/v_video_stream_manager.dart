@@ -2,6 +2,7 @@
 library;
 
 import 'dart:async';
+
 import 'package:flutter/services.dart';
 
 import 'v_video_models.dart';
@@ -16,8 +17,9 @@ class VVideoStreamManager {
   VVideoStreamManager._();
 
   /// The event channel for progress updates
-  static const EventChannel _eventChannel =
-      EventChannel('v_video_compressor/progress');
+  static const EventChannel _eventChannel = EventChannel(
+    'v_video_compressor/progress',
+  );
 
   /// Global progress stream controller
   static StreamController<VVideoProgressEvent>? _progressController;
@@ -156,7 +158,9 @@ class VVideoStreamManager {
     void Function()? onDone,
     bool? cancelOnError,
   }) {
-    return progressStream.where((event) => event.isBatchOperation).listen(
+    return progressStream
+        .where((event) => event.isBatchOperation)
+        .listen(
           (event) =>
               onProgress(event.progress, event.currentIndex!, event.total!),
           onError: onError,

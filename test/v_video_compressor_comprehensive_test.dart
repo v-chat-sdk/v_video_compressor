@@ -281,13 +281,14 @@ void main() {
 
         // High quality should result in larger file than medium
         expect(
-            highEstimate!.estimatedSizeBytes >
-                mediumEstimate!.estimatedSizeBytes,
-            true);
+          highEstimate!.estimatedSizeBytes > mediumEstimate!.estimatedSizeBytes,
+          true,
+        );
         // Medium quality should result in larger file than low
         expect(
-            mediumEstimate.estimatedSizeBytes > lowEstimate!.estimatedSizeBytes,
-            true);
+          mediumEstimate.estimatedSizeBytes > lowEstimate!.estimatedSizeBytes,
+          true,
+        );
       });
 
       test('should return null for empty path', () async {
@@ -413,9 +414,7 @@ void main() {
         expect(invalidSingleDimension.isValid(), false);
 
         // Invalid: negative frame rate
-        const invalidFrameRate = VVideoAdvancedConfig(
-          frameRate: -1.0,
-        );
+        const invalidFrameRate = VVideoAdvancedConfig(frameRate: -1.0);
         expect(invalidFrameRate.isValid(), false);
 
         // Invalid: CRF out of range
@@ -529,18 +528,14 @@ void main() {
       });
 
       test('should reject invalid rotation angles', () {
-        const invalidRotationConfig = VVideoAdvancedConfig(
-          rotation: 45,
-        );
+        const invalidRotationConfig = VVideoAdvancedConfig(rotation: 45);
         expect(invalidRotationConfig.isValid(), false);
       });
 
       test('should compress vertical video with auto-correct', () async {
         const videoPath = '/path/to/vertical_video.mp4';
         const config = VVideoCompressionConfig.high(
-          advanced: VVideoAdvancedConfig(
-            autoCorrectOrientation: true,
-          ),
+          advanced: VVideoAdvancedConfig(autoCorrectOrientation: true),
         );
 
         final result = await compressor.compressVideo(videoPath, config);
@@ -594,7 +589,10 @@ void main() {
     group('Dimension Alignment (Issue #9)', () {
       test('alignTo16 helper function should align correctly', () {
         expect(alignTo16(1920), 1920); // Already aligned
-        expect(alignTo16(1080), 1072); // 1080 → 1072 (rounds down to nearest 16-multiple)
+        expect(
+          alignTo16(1080),
+          1072,
+        ); // 1080 → 1072 (rounds down to nearest 16-multiple)
         expect(alignTo16(1082), 1072); // 1082 → 1072
         expect(alignTo16(720), 720); // Already aligned
         expect(alignTo16(1280), 1280); // Already aligned
@@ -631,13 +629,14 @@ void main() {
         expect(map['dimensionHandling'], 'AUTO_ALIGN');
       });
 
-      test('VVideoAdvancedConfig.fromMap should deserialize dimensionHandling', () {
-        final map = {
-          'dimensionHandling': 'AUTO_ALIGN',
-        };
-        final config = VVideoAdvancedConfig.fromMap(map);
-        expect(config.dimensionHandling, VDimensionHandling.autoAlign);
-      });
+      test(
+        'VVideoAdvancedConfig.fromMap should deserialize dimensionHandling',
+        () {
+          final map = {'dimensionHandling': 'AUTO_ALIGN'};
+          final config = VVideoAdvancedConfig.fromMap(map);
+          expect(config.dimensionHandling, VDimensionHandling.autoAlign);
+        },
+      );
 
       test('should validate compression with non-aligned dimensions', () {
         const config = VVideoCompressionConfig.medium(
@@ -679,10 +678,7 @@ void main() {
 
     group('Cleanup Operations', () {
       test('should perform cleanup', () async {
-        await expectLater(
-          () => compressor.cleanup(),
-          returnsNormally,
-        );
+        await expectLater(() => compressor.cleanup(), returnsNormally);
       });
 
       test('should perform selective cleanup', () async {

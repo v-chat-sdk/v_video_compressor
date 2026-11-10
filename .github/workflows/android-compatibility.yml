@@ -48,7 +48,7 @@ jobs:
 
       - name: Run Android plugin tests and lint
         working-directory: example/android
-        run: ./gradlew :v_video_compressor:testDebugUnitTest lintDebug
+        run: ./gradlew :v_video_compressor:testDebugUnitTest :v_video_compressor:lintDebug :app:lintDebug
 
       - name: Verify AGP 9 built-in Kotlin integration
         env:

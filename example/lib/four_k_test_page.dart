@@ -11,7 +11,7 @@ class FourKTestPage extends StatefulWidget {
 
 class _FourKTestPageState extends State<FourKTestPage> {
   final VVideoCompressor _compressor = VVideoCompressor();
-  
+
   String? _selectedVideoPath;
   VVideoInfo? _videoInfo;
   double _compressionProgress = 0.0;
@@ -86,7 +86,9 @@ class _FourKTestPageState extends State<FourKTestPage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            _is4KVideo() ? '4K Video Detected' : 'Standard Video',
+                            _is4KVideo()
+                                ? '4K Video Detected'
+                                : 'Standard Video',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -96,7 +98,9 @@ class _FourKTestPageState extends State<FourKTestPage> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text('Resolution: ${_videoInfo!.width}x${_videoInfo!.height}'),
+                      Text(
+                        'Resolution: ${_videoInfo!.width}x${_videoInfo!.height}',
+                      ),
                       Text('Duration: ${_videoInfo!.durationFormatted}'),
                       Text('Size: ${_videoInfo!.fileSizeFormatted}'),
                       if (_is4KVideo()) ...[
@@ -137,7 +141,7 @@ class _FourKTestPageState extends State<FourKTestPage> {
                         style: TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Conservative Test (Recommended for Galaxy A40)
                       ElevatedButton(
                         onPressed: () => _testConservative4K(),
@@ -152,7 +156,7 @@ class _FourKTestPageState extends State<FourKTestPage> {
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       const SizedBox(height: 8),
-                      
+
                       // Balanced Test
                       ElevatedButton(
                         onPressed: () => _testBalanced4K(),
@@ -167,7 +171,7 @@ class _FourKTestPageState extends State<FourKTestPage> {
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       const SizedBox(height: 8),
-                      
+
                       // Custom Test
                       ElevatedButton(
                         onPressed: () => _testCustom4K(),
@@ -250,8 +254,12 @@ class _FourKTestPageState extends State<FourKTestPage> {
                       ),
                       const SizedBox(height: 8),
                       Text('Original Size: ${_result!.originalSizeFormatted}'),
-                      Text('Compressed Size: ${_result!.compressedSizeFormatted}'),
-                      Text('Saved: ${_result!.spaceSavedFormatted} (${_result!.compressionPercentage}%)'),
+                      Text(
+                        'Compressed Size: ${_result!.compressedSizeFormatted}',
+                      ),
+                      Text(
+                        'Saved: ${_result!.spaceSavedFormatted} (${_result!.compressionPercentage}%)',
+                      ),
                       Text('Time: ${_result!.timeTakenFormatted}'),
                       Text('Quality: ${_result!.quality.displayName}'),
                       const SizedBox(height: 8),
@@ -316,8 +324,8 @@ class _FourKTestPageState extends State<FourKTestPage> {
   }
 
   bool _is4KVideo() {
-    return _videoInfo != null && 
-           (_videoInfo!.width >= 3840 || _videoInfo!.height >= 2160);
+    return _videoInfo != null &&
+        (_videoInfo!.width >= 3840 || _videoInfo!.height >= 2160);
   }
 
   Future<void> _pickVideo() async {
@@ -348,9 +356,8 @@ class _FourKTestPageState extends State<FourKTestPage> {
     } catch (e) {
       _addLog('Error picking video: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking video: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error picking video: $e')));
       }
     }
   }
@@ -358,7 +365,7 @@ class _FourKTestPageState extends State<FourKTestPage> {
   Future<void> _testConservative4K() async {
     _addLog('Starting Conservative 4K Test...');
     _addLog('Settings: MEDIUM quality, H.264 codec, 3.2 Mbps');
-    
+
     final config = VVideoCompressionConfig(
       quality: VVideoCompressQuality.medium,
       advanced: VVideoAdvancedConfig(
@@ -367,28 +374,26 @@ class _FourKTestPageState extends State<FourKTestPage> {
         hardwareAcceleration: true,
       ),
     );
-    
+
     await _compressVideo(config, 'Conservative 4K');
   }
 
   Future<void> _testBalanced4K() async {
     _addLog('Starting Balanced 4K Test...');
     _addLog('Settings: HIGH quality with automatic device detection');
-    
+
     final config = VVideoCompressionConfig(
       quality: VVideoCompressQuality.high,
-      advanced: VVideoAdvancedConfig(
-        hardwareAcceleration: true,
-      ),
+      advanced: VVideoAdvancedConfig(hardwareAcceleration: true),
     );
-    
+
     await _compressVideo(config, 'Balanced 4K');
   }
 
   Future<void> _testCustom4K() async {
     _addLog('Starting Custom 4K Test...');
     _addLog('Settings: H.265 codec, custom bitrate (experimental)');
-    
+
     final config = VVideoCompressionConfig(
       quality: VVideoCompressQuality.medium,
       advanced: VVideoAdvancedConfig(
@@ -397,11 +402,14 @@ class _FourKTestPageState extends State<FourKTestPage> {
         hardwareAcceleration: true,
       ),
     );
-    
+
     await _compressVideo(config, 'Custom 4K');
   }
 
-  Future<void> _compressVideo(VVideoCompressionConfig config, String testName) async {
+  Future<void> _compressVideo(
+    VVideoCompressionConfig config,
+    String testName,
+  ) async {
     if (_selectedVideoPath == null) return;
 
     setState(() {
@@ -419,7 +427,9 @@ class _FourKTestPageState extends State<FourKTestPage> {
         onProgress: (progress) {
           setState(() => _compressionProgress = progress);
           if (progress > 0.02 && progress < 0.05) {
-            _addLog('Progress: ${(progress * 100).toInt()}% - Past critical 2.7% mark!');
+            _addLog(
+              'Progress: ${(progress * 100).toInt()}% - Past critical 2.7% mark!',
+            );
           }
         },
       );
@@ -434,7 +444,7 @@ class _FourKTestPageState extends State<FourKTestPage> {
         _addLog('Original: ${result.originalSizeFormatted}');
         _addLog('Compressed: ${result.compressedSizeFormatted}');
         _addLog('Saved: ${result.spaceSavedFormatted}');
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -447,7 +457,7 @@ class _FourKTestPageState extends State<FourKTestPage> {
     } catch (e) {
       setState(() => _isCompressing = false);
       _addLog('$testName compression failed: $e');
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

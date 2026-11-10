@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:v_video_compressor/v_video_compressor.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gal/gal.dart';
+
 import 'crop_compression_page.dart';
 import 'four_k_test_page.dart';
 
@@ -157,9 +158,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         children: [
                           Icon(
                             Icons.crop,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onPrimaryContainer,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
                           ),
                           const SizedBox(width: 10),
                           Text(
@@ -354,9 +355,8 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error picking video: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error picking video: $e')));
       }
     }
   }
@@ -416,9 +416,8 @@ class _MyHomePageState extends State<MyHomePage> {
     } catch (e) {
       setState(() => _isCompressing = false);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Compression failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Compression failed: $e')));
       }
     }
   }
@@ -451,9 +450,8 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Thumbnail failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Thumbnail failed: $e')));
       }
     }
   }
@@ -487,9 +485,8 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to save video: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed to save video: $e')));
       }
     }
   }

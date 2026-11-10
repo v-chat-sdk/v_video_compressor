@@ -6,10 +6,35 @@
 
 A **professional Flutter plugin** for high-quality video compression with real-time progress tracking, thumbnail generation, and comprehensive configuration options.
 
+## Android progress in 3.0.1
+
+Version 3.0.1 includes the Android progress fix from [PR #33](https://github.com/v-chat-sdk/v_video_compressor/pull/33), resolving [issue #34](https://github.com/v-chat-sdk/v_video_compressor/issues/34). Upgrade from 3.0.0 to receive this fix.
+
+Android reads Media3's `Transformer.getProgress` on the transformer's main
+thread whenever progress is available. If Media3 cannot report progress, the
+plugin falls back to the existing elapsed-time and output-size estimate.
+Reported progress never moves backwards, stays below 100% during export, and
+reaches 100% when compression completes. This applies to progress callbacks and
+the global progress stream. iOS progress reporting is unchanged.
+
+This patch retains the Flutter 3.47 / Dart 3.13 requirements introduced in
+3.0.0 and adds no API, channel, permission, or minimum platform changes.
+
+## Published native fixes preserved
+
+This SDK update includes the fixes already published in 2.2.2 and 2.2.3.
+Android applies an explicit `advanced.videoBitrate` to the Media3 encoder and
+lowers the output frame rate by dropping frames when `advanced.frameRate` is
+below the source rate; it does not synthesize additional frames. On iOS,
+`advanced.frameRate` applies to crop, resize, trim, rotation, and frame-rate-only
+exports. iOS rounds to an integer with a minimum of 1 FPS and rejects non-finite
+or overflowing values. Without a crop, iOS output dimensions round down to
+multiples of 16.
+
 ## ✨ **Key Features**
 
 - 🎬 **Professional Video Compression** - 5 quality levels with native platform APIs (Media3 for Android, AVFoundation for iOS)
-- 📊 **Real-Time Progress Tracking** - Smooth progress updates with hybrid estimation algorithm
+- 📊 **Real-Time Progress Tracking** - Native export progress with an estimate fallback on Android
 - 🌐 **Global Progress Stream** - NEW! Typed global stream accessible from anywhere in your app
 - 🔧 **Advanced Configuration** - 20+ compression parameters for professional control
 - 🖼️ **Thumbnail Generation** - Extract high-quality thumbnails at any timestamp
@@ -17,7 +42,7 @@ A **professional Flutter plugin** for high-quality video compression with real-t
 - 🚀 **Batch Processing** - Compress multiple videos with overall progress tracking
 - ⛔ **Cancellation Support** - Cancel operations anytime with automatic cleanup
 - 📝 **Comprehensive Logging** - Production-ready error tracking and debugging
-- 🧪 **Thoroughly Tested** - 95%+ test coverage with complete mock implementations
+- 🧪 **Automated Tests** - Dart API and channel tests plus native regression tests
 - ⚡ **No ffmpeg** - Uses native APIs for optimal performance and smaller app size
 
 ## 🎯 **Philosophy**
@@ -32,7 +57,7 @@ This plugin **focuses exclusively on video compression and thumbnail generation*
 | **iOS (SwiftPM)**    | ✅ **Full Support** | iOS 15.0+              | Current Flutter toolchains         |
 | **iOS (CocoaPods)**  | ✅ **Full Support** | iOS 12.0+              | Legacy Flutter toolchain metadata  |
 
-The package requires Flutter 3.44 or newer and Dart 3.12 or newer. Android
+The package requires Flutter 3.47 or newer and Dart 3.13 or newer. Android
 apps can use either Flutter's legacy KGP compatibility mode or AGP 9 built-in
 Kotlin; enabling built-in Kotlin requires Flutter 3.47 or newer.
 
@@ -44,7 +69,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  v_video_compressor: ^2.2.3
+  v_video_compressor: ^3.0.1
   file_picker: ^8.0.0 # For video selection
   # OR
   image_picker: ^1.0.7 # Alternative for video selection

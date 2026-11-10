@@ -172,8 +172,7 @@ class MockVVideoCompressorPlatform
     bool deleteThumbnails = true,
     bool deleteCompressedVideos = false,
     bool clearCache = true,
-  }) =>
-      Future.value();
+  }) => Future.value();
 }
 
 void main() {
@@ -342,10 +341,7 @@ void main() {
       });
 
       test('should track batch compression progress', () async {
-        final videoPaths = [
-          '/path/to/video1.mp4',
-          '/path/to/video2.mp4',
-        ];
+        final videoPaths = ['/path/to/video1.mp4', '/path/to/video2.mp4'];
         final config = VVideoCompressionConfig(
           quality: VVideoCompressQuality.medium,
         );
@@ -448,8 +444,10 @@ void main() {
 
       test('should return null for invalid video path', () async {
         final config = VVideoThumbnailConfig();
-        final result =
-            await compressor.getVideoThumbnail('/invalid/path', config);
+        final result = await compressor.getVideoThumbnail(
+          '/invalid/path',
+          config,
+        );
         expect(result, isNull);
       });
 
@@ -462,10 +460,7 @@ void main() {
 
     group('Cleanup Operations', () {
       test('should perform complete cleanup', () async {
-        await expectLater(
-          () => compressor.cleanup(),
-          returnsNormally,
-        );
+        await expectLater(() => compressor.cleanup(), returnsNormally);
       });
 
       test('should perform selective cleanup', () async {
@@ -506,22 +501,10 @@ void main() {
       });
 
       test('should reject non-positive video and audio bitrates', () {
-        expect(
-          const VVideoAdvancedConfig(videoBitrate: 0).isValid(),
-          isFalse,
-        );
-        expect(
-          const VVideoAdvancedConfig(videoBitrate: -1).isValid(),
-          isFalse,
-        );
-        expect(
-          const VVideoAdvancedConfig(audioBitrate: 0).isValid(),
-          isFalse,
-        );
-        expect(
-          const VVideoAdvancedConfig(audioBitrate: -1).isValid(),
-          isFalse,
-        );
+        expect(const VVideoAdvancedConfig(videoBitrate: 0).isValid(), isFalse);
+        expect(const VVideoAdvancedConfig(videoBitrate: -1).isValid(), isFalse);
+        expect(const VVideoAdvancedConfig(audioBitrate: 0).isValid(), isFalse);
+        expect(const VVideoAdvancedConfig(audioBitrate: -1).isValid(), isFalse);
         expect(
           const VVideoAdvancedConfig(videoBitrate: 0x80000000).isValid(),
           isFalse,
@@ -609,19 +592,21 @@ void main() {
     });
 
     group('Data Model Tests', () {
-      test('compression fallback remains enabled for legacy configurations',
-          () {
-        final config = VVideoCompressionConfig.fromMap({
-          'quality': VVideoCompressQuality.medium.value,
-        });
+      test(
+        'compression fallback remains enabled for legacy configurations',
+        () {
+          final config = VVideoCompressionConfig.fromMap({
+            'quality': VVideoCompressQuality.medium.value,
+          });
 
-        expect(config.fallbackToOriginalIfNotSmaller, isTrue);
-        expect(
-          const VVideoCompressionConfig.medium()
-              .toMap()['fallbackToOriginalIfNotSmaller'],
-          isTrue,
-        );
-      });
+          expect(config.fallbackToOriginalIfNotSmaller, isTrue);
+          expect(
+            const VVideoCompressionConfig.medium()
+                .toMap()['fallbackToOriginalIfNotSmaller'],
+            isTrue,
+          );
+        },
+      );
 
       test('compression fallback can be disabled and round-tripped', () {
         const config = VVideoCompressionConfig.medium(

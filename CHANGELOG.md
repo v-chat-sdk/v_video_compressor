@@ -1,12 +1,30 @@
-## [Unreleased]
+## [3.0.1] - 2026-11-10
 
 ### Fixed
 
-- Android progress now uses Media3's own export progress
-  (`Transformer.getProgress`) when it is available. The previous estimate
-  (elapsed time and output size) could stop at about 66% on long videos and
-  lag far behind on short ones; it remains as a fallback, and reported
-  progress never goes backwards.
+- Publish the Android progress fix from PR #33, resolving #34. Android now
+  reads Media3's `Transformer.getProgress` when available instead of relying
+  only on elapsed time and output size, which could stall near 66% on long
+  videos or lag behind short exports.
+- Keep the previous estimate as a fallback when Media3 progress is unavailable,
+  prevent progress from moving backwards, and reserve 100% for completion.
+
+### Documentation
+
+- Document Android progress reporting and update the installation example to
+  3.0.1. Retain the Flutter 3.47 / Dart 3.13 requirements and all native fixes
+  shipped in 3.0.0; this patch adds no API, channel, permission, or minimum
+  platform changes.
+
+## 3.0.0 - 2026-11-04
+
+- Require Flutter >=3.47.0 and Dart >=3.13.0 <4.0.0 for this SDK update.
+- Refresh package and example dependency constraints to current stable releases as of 2026-11-04, subject to documented upstream compatibility constraints.
+- Validate with Flutter 3.47.8 / Dart 3.13.7 using fix, format, static analysis, and package/example tests.
+- Upgrade the example to video_trimmer 6.0.0 and its path-based loadVideo API.
+- Align CocoaPods package version metadata with the Dart package version.
+
+- Preserve the published 2.2.2 Android encoder settings and 2.2.3 iOS frame-rate fixes, including native regression coverage.
 
 ## [2.2.3] - 2026-09-26
 

@@ -22,12 +22,7 @@ void main() {
     });
 
     test('full frame is valid and a no-op', () {
-      const fullFrame = VVideoCropRect(
-        left: 0,
-        top: 0,
-        right: 1,
-        bottom: 1,
-      );
+      const fullFrame = VVideoCropRect(left: 0, top: 0, right: 1, bottom: 1);
       const roundedFullFrame = VVideoCropRect(
         left: 0.0000005,
         top: 0,
@@ -64,18 +59,10 @@ void main() {
     });
 
     test('advanced validation includes crop validation', () {
-      expect(
-        const VVideoAdvancedConfig(cropRect: crop).isValid(),
-        isTrue,
-      );
+      expect(const VVideoAdvancedConfig(cropRect: crop).isValid(), isTrue);
       expect(
         const VVideoAdvancedConfig(
-          cropRect: VVideoCropRect(
-            left: 0.5,
-            top: 0,
-            right: 0.5,
-            bottom: 1,
-          ),
+          cropRect: VVideoCropRect(left: 0.5, top: 0, right: 0.5, bottom: 1),
         ).isValid(),
         isFalse,
       );

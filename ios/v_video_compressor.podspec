@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'v_video_compressor'
-  s.version          = '2.2.0'
+  s.version          = '3.0.0'
   s.summary          = 'Efficient video compression plugin for Flutter'
   s.description      = <<-DESC
 A focused Flutter plugin for efficient video compression with real-time progress tracking,

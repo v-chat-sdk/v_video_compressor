@@ -328,28 +328,26 @@ void main() {
     expect(await thumbnailPixel(result.compressedFilePath), hasLength(4));
   });
 
-  testWidgets(
-    'downloads a public Flutter video and exports crop on iOS',
-    (tester) async {
-      final input = await downloadPublicVideo();
-      final sourceInfo = await inspect(input);
-      expect(sourceInfo['hasVideo'], isTrue);
-      expect(sourceInfo['hasAudio'], isTrue);
-      expect(sourceInfo['durationMillis'] as int, closeTo(4037, 300));
+  testWidgets('downloads a public Flutter video and exports crop on iOS', (
+    tester,
+  ) async {
+    final input = await downloadPublicVideo();
+    final sourceInfo = await inspect(input);
+    expect(sourceInfo['hasVideo'], isTrue);
+    expect(sourceInfo['hasAudio'], isTrue);
+    expect(sourceInfo['durationMillis'] as int, closeTo(4037, 300));
 
-      final result = await crop(
-        input,
-        const VVideoCropRect(left: 0.1, top: 0.1, right: 0.9, bottom: 0.9),
-        trimStartMs: 500,
-        trimEndMs: 2500,
-      );
-      final outputInfo = await inspect(result.compressedFilePath);
-      expect(outputInfo['hasVideo'], isTrue);
-      expect(outputInfo['hasAudio'], isTrue);
-      expectEncoderSafeDimensions(outputInfo, 1024, 576);
-      expect(outputInfo['durationMillis'] as int, closeTo(2000, 300));
-      expect(await thumbnailPixel(result.compressedFilePath), hasLength(4));
-    },
-    skip: !runNetworkIntegration || !Platform.isIOS,
-  );
+    final result = await crop(
+      input,
+      const VVideoCropRect(left: 0.1, top: 0.1, right: 0.9, bottom: 0.9),
+      trimStartMs: 500,
+      trimEndMs: 2500,
+    );
+    final outputInfo = await inspect(result.compressedFilePath);
+    expect(outputInfo['hasVideo'], isTrue);
+    expect(outputInfo['hasAudio'], isTrue);
+    expectEncoderSafeDimensions(outputInfo, 1024, 576);
+    expect(outputInfo['durationMillis'] as int, closeTo(2000, 300));
+    expect(await thumbnailPixel(result.compressedFilePath), hasLength(4));
+  }, skip: !runNetworkIntegration || !Platform.isIOS);
 }

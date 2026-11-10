@@ -57,47 +57,47 @@ class VVideoLogConfig {
 
   /// Create a config for production (minimal logging)
   const VVideoLogConfig.production()
-      : enabled = true,
-        level = VVideoLogLevel.error,
-        showStackTrace = false,
-        showParameters = false,
-        showProgress = false,
-        showSuccess = false,
-        customPrefix = null,
-        useConsoleLog = false;
+    : enabled = true,
+      level = VVideoLogLevel.error,
+      showStackTrace = false,
+      showParameters = false,
+      showProgress = false,
+      showSuccess = false,
+      customPrefix = null,
+      useConsoleLog = false;
 
   /// Create a config for development (verbose logging)
   const VVideoLogConfig.development()
-      : enabled = true,
-        level = VVideoLogLevel.verbose,
-        showStackTrace = true,
-        showParameters = true,
-        showProgress = true,
-        showSuccess = true,
-        customPrefix = null,
-        useConsoleLog = false;
+    : enabled = true,
+      level = VVideoLogLevel.verbose,
+      showStackTrace = true,
+      showParameters = true,
+      showProgress = true,
+      showSuccess = true,
+      customPrefix = null,
+      useConsoleLog = false;
 
   /// Create a config for debugging (all logs)
   const VVideoLogConfig.debug()
-      : enabled = true,
-        level = VVideoLogLevel.debug,
-        showStackTrace = true,
-        showParameters = true,
-        showProgress = true,
-        showSuccess = true,
-        customPrefix = '[V_VIDEO_DEBUG]',
-        useConsoleLog = true;
+    : enabled = true,
+      level = VVideoLogLevel.debug,
+      showStackTrace = true,
+      showParameters = true,
+      showProgress = true,
+      showSuccess = true,
+      customPrefix = '[V_VIDEO_DEBUG]',
+      useConsoleLog = true;
 
   /// Disable all logging
   const VVideoLogConfig.disabled()
-      : enabled = false,
-        level = VVideoLogLevel.none,
-        showStackTrace = false,
-        showParameters = false,
-        showProgress = false,
-        showSuccess = false,
-        customPrefix = null,
-        useConsoleLog = false;
+    : enabled = false,
+      level = VVideoLogLevel.none,
+      showStackTrace = false,
+      showParameters = false,
+      showProgress = false,
+      showSuccess = false,
+      customPrefix = null,
+      useConsoleLog = false;
 }
 
 /// Internal logging utility for V Video Compressor with configurable options
@@ -148,12 +148,7 @@ class VVideoLogger {
       return;
     }
 
-    _log(
-      message,
-      VVideoLogLevel.info,
-      error: error,
-      stackTrace: stackTrace,
-    );
+    _log(message, VVideoLogLevel.info, error: error, stackTrace: stackTrace);
   }
 
   /// Log debug messages
@@ -162,12 +157,7 @@ class VVideoLogger {
       return;
     }
 
-    _log(
-      message,
-      VVideoLogLevel.debug,
-      error: error,
-      stackTrace: stackTrace,
-    );
+    _log(message, VVideoLogLevel.debug, error: error, stackTrace: stackTrace);
   }
 
   /// Log verbose messages
@@ -177,12 +167,7 @@ class VVideoLogger {
       return;
     }
 
-    _log(
-      message,
-      VVideoLogLevel.verbose,
-      error: error,
-      stackTrace: stackTrace,
-    );
+    _log(message, VVideoLogLevel.verbose, error: error, stackTrace: stackTrace);
   }
 
   /// Log method calls for debugging
@@ -193,8 +178,9 @@ class VVideoLogger {
 
     String message = 'Method: $methodName';
     if (_config.showParameters && params != null && params.isNotEmpty) {
-      final paramsStr =
-          params.entries.map((e) => '${e.key}: ${e.value}').join(', ');
+      final paramsStr = params.entries
+          .map((e) => '${e.key}: ${e.value}')
+          .join(', ');
       message += '($paramsStr)';
     } else {
       message += '()';
@@ -229,8 +215,9 @@ class VVideoLogger {
 
     String message = '✅ $operation completed successfully';
     if (details != null && details.isNotEmpty) {
-      final detailsStr =
-          details.entries.map((e) => '${e.key}: ${e.value}').join(', ');
+      final detailsStr = details.entries
+          .map((e) => '${e.key}: ${e.value}')
+          .join(', ');
       message += ' - $detailsStr';
     }
 

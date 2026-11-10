@@ -1073,8 +1073,7 @@ class _AdvancedCompressionPageState extends State<AdvancedCompressionPage> {
       final cropRect = _readCropRect();
       if (cropRect == null || !cropRect.isValid()) {
         setState(
-          () => _validationError =
-              'Crop requires finite values with 0 ≤ left < right ≤ 1 and 0 ≤ top < bottom ≤ 1',
+          () => _validationError = 'Crop requires finite values with 0 ≤ left < right ≤ 1 and 0 ≤ top < bottom ≤ 1',
         );
         return false;
       }

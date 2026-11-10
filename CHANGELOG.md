@@ -1,4 +1,30 @@
-## [Unreleased]
+## 3.0.0 - 2026-11-04
+
+- Require Flutter >=3.47.0 and Dart >=3.13.0 <4.0.0 for this SDK update.
+- Refresh package and example dependency constraints to current stable releases as of 2026-11-04, subject to documented upstream compatibility constraints.
+- Validate with Flutter 3.47.8 / Dart 3.13.7 using fix, format, static analysis, and package/example tests.
+- Upgrade the example to video_trimmer 6.0.0 and its path-based loadVideo API.
+- Align CocoaPods package version metadata with the Dart package version.
+
+- Preserve the published 2.2.2 Android encoder settings and 2.2.3 iOS frame-rate fixes, including native regression coverage.
+
+## [2.2.3] - 2026-09-26
+
+### Fixed
+
+- iOS now honors `advanced.frameRate` without a crop, including resize, trim,
+  rotation, orientation correction, and frame-rate-only requests, fixing #31.
+  Crop and non-crop compositions share the existing integer frame-rate rounding
+  and 30 FPS default.
+- Reject non-finite or overflowing iOS frame rates before converting to a
+  native time scale, avoiding a crash.
+
+### Documentation
+
+- Clarified iOS frame-rate rounding and non-crop dimension alignment in the
+  advanced configuration API documentation.
+
+## [2.2.2] - 2026-09-20
 
 ### Changed
 
@@ -9,6 +35,9 @@
 
 ### Fixed
 
+- Android compression now applies `videoBitrate` to the Media3 encoder and
+  lowers output frame rate when `frameRate` is below the source frame rate,
+  fixing #26.
 - Android H.264 exports now request the lowest H.264 level that covers the
   output resolution and frame rate. Media3 otherwise asks the encoder for the
   highest level it advertises, so exports could be declared as e.g. High@L6.0

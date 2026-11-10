@@ -241,6 +241,12 @@ class VVideoCompressionEngine {
                 config: config,
                 trimAlreadyApplied: trimAlreadyApplied
             )
+        } else if config.advanced?.frameRate != nil {
+            // A frame-rate-only edit must retain the source geometry and orientation.
+            let videoComposition = AVMutableVideoComposition(propertiesOf: exportAsset)
+            videoComposition.sourceTrackIDForFrameTiming = kCMPersistentTrackID_Invalid
+            videoComposition.frameDuration = compositionFrameDuration(config: config)
+            exportSession.videoComposition = videoComposition
         }
 
         // Applied last: trimming above narrows exportSession.timeRange, and the
@@ -269,6 +275,11 @@ class VVideoCompressionEngine {
         }
     }
     
+    private func compositionFrameDuration(config: VVideoCompressionConfig) -> CMTime {
+        let frameRate = config.advanced?.frameRate ?? Double(Self.DEFAULT_FRAME_RATE)
+        return CMTime(value: 1, timescale: Int32(max(1, frameRate.rounded())))
+    }
+
     private func needsAdvancedComposition(config: VVideoCompressionConfig) -> Bool {
         guard let advanced = config.advanced else { return false }
         return advanced.rotation != nil || advanced.brightness != nil ||
@@ -395,7 +406,7 @@ class VVideoCompressionEngine {
 
         let videoComposition = AVMutableVideoComposition()
         videoComposition.renderSize = CGSize(width: renderWidth, height: renderHeight)
-        videoComposition.frameDuration = CMTime(value: 1, timescale: Int32(Self.DEFAULT_FRAME_RATE))
+        videoComposition.frameDuration = compositionFrameDuration(config: config)
 
         let instruction = AVMutableVideoCompositionInstruction()
         instruction.timeRange = CMTimeRange(start: .zero, duration: asset.duration)
@@ -541,12 +552,7 @@ class VVideoCompressionEngine {
             width: plan.outputSize.width,
             height: plan.outputSize.height
         )
-        let frameRate =
-            config.advanced?.frameRate ?? Double(Self.DEFAULT_FRAME_RATE)
-        videoComposition.frameDuration = CMTime(
-            value: 1,
-            timescale: Int32(max(1, Int(frameRate.rounded())))
-        )
+        videoComposition.frameDuration = compositionFrameDuration(config: config)
 
         let instruction = AVMutableVideoCompositionInstruction()
         instruction.timeRange = CMTimeRange(
@@ -874,7 +880,11 @@ class VVideoCompressionEngine {
                bitrate <= 0 || bitrate > VVideoFileLengthBudget.maximumBitrate {
                 return false
             }
-            if let frameRate = advanced.frameRate, frameRate <= 0 { return false }
+            if let frameRate = advanced.frameRate,
+               !frameRate.isFinite || frameRate <= 0 ||
+               frameRate.rounded() > Double(Int32.max) {
+                return false
+            }
         }
         
         return true

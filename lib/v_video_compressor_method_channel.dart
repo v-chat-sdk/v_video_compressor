@@ -22,7 +22,8 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
   ) {
     final map = config.toMap();
     final advanced = config.advanced;
-    final requiresEncodedOutput = !config.includeAudio ||
+    final requiresEncodedOutput =
+        !config.includeAudio ||
         (advanced != null &&
             ((advanced.cropRect != null && !advanced.cropRect!.isFullFrame()) ||
                 (advanced.trimStartMs ?? 0) > 0 ||
@@ -51,7 +52,8 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
 
       stopwatch.stop();
       VVideoLogger.info(
-          'getPlatformVersion completed (${stopwatch.elapsedMilliseconds}ms)');
+        'getPlatformVersion completed (${stopwatch.elapsedMilliseconds}ms)',
+      );
 
       return version;
     } catch (error, stackTrace) {
@@ -99,7 +101,8 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
       if (result != null) {
         final videoInfo = VVideoInfo.fromMap(_convertToStringMap(result));
         VVideoLogger.info(
-            'getVideoInfo completed (${stopwatch.elapsedMilliseconds}ms) - ${videoInfo.name} (${videoInfo.fileSizeFormatted}, ${videoInfo.durationFormatted})');
+          'getVideoInfo completed (${stopwatch.elapsedMilliseconds}ms) - ${videoInfo.name} (${videoInfo.fileSizeFormatted}, ${videoInfo.durationFormatted})',
+        );
         return videoInfo;
       } else {
         VVideoLogger.warning('No video info returned for path: $videoPath');
@@ -108,7 +111,10 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
     } catch (error, stackTrace) {
       stopwatch.stop();
       VVideoLogger.error(
-          'Error getting video info for path: $videoPath', error, stackTrace);
+        'Error getting video info for path: $videoPath',
+        error,
+        stackTrace,
+      );
       return null;
     }
   }
@@ -137,8 +143,9 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
       );
 
       if (result != null) {
-        final estimate =
-            VVideoCompressionEstimate.fromMap(_convertToStringMap(result));
+        final estimate = VVideoCompressionEstimate.fromMap(
+          _convertToStringMap(result),
+        );
         VVideoLogger.success('getCompressionEstimate', {
           'estimatedSize': estimate.estimatedSizeFormatted,
           'compressionRatio':
@@ -150,7 +157,10 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
       return null;
     } catch (error, stackTrace) {
       VVideoLogger.error(
-          'Error getting compression estimate', error, stackTrace);
+        'Error getting compression estimate',
+        error,
+        stackTrace,
+      );
       return null;
     }
   }
@@ -180,24 +190,25 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
       // Set up progress listener if callback provided
       if (onProgress != null) {
         VVideoLogger.info('Setting up progress listener for compression');
-        progressSubscription = eventChannel.receiveBroadcastStream().listen((
-          event,
-        ) {
-          final progressEvent = VVideoProgressEvent.fromMap(
-            Map<String, dynamic>.from(event as Map),
-          );
-          VVideoLogger.progress('Compression', progressEvent.progress);
-          onProgress(progressEvent.progress);
-        }, onError: (error) {
-          VVideoLogger.error('Progress subscription error', error, null);
-        });
+        progressSubscription = eventChannel.receiveBroadcastStream().listen(
+          (event) {
+            final progressEvent = VVideoProgressEvent.fromMap(
+              Map<String, dynamic>.from(event as Map),
+            );
+            VVideoLogger.progress('Compression', progressEvent.progress);
+            onProgress(progressEvent.progress);
+          },
+          onError: (error) {
+            VVideoLogger.error('Progress subscription error', error, null);
+          },
+        );
       }
 
       final result = await methodChannel.invokeMethod<Map<Object?, Object?>>(
         'compressVideo',
         {
           'videoPath': videoPath,
-          'config': _compressionConfigForChannel(config)
+          'config': _compressionConfigForChannel(config),
         },
       );
 
@@ -206,8 +217,9 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
       stopwatch.stop();
 
       if (result != null) {
-        final compressionResult =
-            VVideoCompressionResult.fromMap(_convertToStringMap(result));
+        final compressionResult = VVideoCompressionResult.fromMap(
+          _convertToStringMap(result),
+        );
         VVideoLogger.success('compressVideo', {
           'originalSize': compressionResult.originalSizeFormatted,
           'compressedSize': compressionResult.compressedSizeFormatted,
@@ -222,7 +234,10 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
       await progressSubscription?.cancel();
       stopwatch.stop();
       VVideoLogger.error(
-          'Video compression failed for: $videoPath', error, stackTrace);
+        'Video compression failed for: $videoPath',
+        error,
+        stackTrace,
+      );
       return null;
     }
   }
@@ -254,8 +269,11 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
             Map<String, dynamic>.from(event as Map),
           );
           if (progressEvent.isBatchOperation) {
-            onProgress(progressEvent.progress, progressEvent.currentIndex!,
-                progressEvent.total!);
+            onProgress(
+              progressEvent.progress,
+              progressEvent.currentIndex!,
+              progressEvent.total!,
+            );
           }
         });
       }
@@ -309,7 +327,10 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
       return result ?? false;
     } catch (error, stackTrace) {
       VVideoLogger.error(
-          'Error checking compression status', error, stackTrace);
+        'Error checking compression status',
+        error,
+        stackTrace,
+      );
       return false;
     }
   }
@@ -336,8 +357,9 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
       );
 
       if (result != null) {
-        final thumbnail =
-            VVideoThumbnailResult.fromMap(_convertToStringMap(result));
+        final thumbnail = VVideoThumbnailResult.fromMap(
+          _convertToStringMap(result),
+        );
         VVideoLogger.success('getVideoThumbnail', {
           'path': thumbnail.thumbnailPath,
           'size': '${thumbnail.width}x${thumbnail.height}',
@@ -370,11 +392,13 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
         }
       }
 
-      final result = await methodChannel
-          .invokeMethod<List<Object?>>('getVideoThumbnails', {
-        'videoPath': videoPath,
-        'configs': configs.map((config) => config.toMap()).toList(),
-      });
+      final result = await methodChannel.invokeMethod<List<Object?>>(
+        'getVideoThumbnails',
+        {
+          'videoPath': videoPath,
+          'configs': configs.map((config) => config.toMap()).toList(),
+        },
+      );
 
       if (result != null) {
         final thumbnails = result
@@ -383,14 +407,18 @@ class MethodChannelVVideoCompressor extends VVideoCompressorPlatform {
               (map) => VVideoThumbnailResult.fromMap(_convertToStringMap(map)),
             )
             .toList();
-        VVideoLogger.success(
-            'getVideoThumbnails', {'count': thumbnails.length});
+        VVideoLogger.success('getVideoThumbnails', {
+          'count': thumbnails.length,
+        });
         return thumbnails;
       }
       return [];
     } catch (error, stackTrace) {
       VVideoLogger.error(
-          'Error generating video thumbnails', error, stackTrace);
+        'Error generating video thumbnails',
+        error,
+        stackTrace,
+      );
       return [];
     }
   }

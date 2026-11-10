@@ -6,6 +6,17 @@
 
 A **professional Flutter plugin** for high-quality video compression with real-time progress tracking, thumbnail generation, and comprehensive configuration options.
 
+## Published native fixes preserved
+
+This SDK update includes the fixes already published in 2.2.2 and 2.2.3.
+Android applies an explicit `advanced.videoBitrate` to the Media3 encoder and
+lowers the output frame rate by dropping frames when `advanced.frameRate` is
+below the source rate; it does not synthesize additional frames. On iOS,
+`advanced.frameRate` applies to crop, resize, trim, rotation, and frame-rate-only
+exports. iOS rounds to an integer with a minimum of 1 FPS and rejects non-finite
+or overflowing values. Without a crop, iOS output dimensions round down to
+multiples of 16.
+
 ## ✨ **Key Features**
 
 - 🎬 **Professional Video Compression** - 5 quality levels with native platform APIs (Media3 for Android, AVFoundation for iOS)
@@ -32,7 +43,7 @@ This plugin **focuses exclusively on video compression and thumbnail generation*
 | **iOS (SwiftPM)**    | ✅ **Full Support** | iOS 15.0+              | Current Flutter toolchains         |
 | **iOS (CocoaPods)**  | ✅ **Full Support** | iOS 12.0+              | Legacy Flutter toolchain metadata  |
 
-The package requires Flutter 3.44 or newer and Dart 3.12 or newer. Android
+The package requires Flutter 3.47 or newer and Dart 3.13 or newer. Android
 apps can use either Flutter's legacy KGP compatibility mode or AGP 9 built-in
 Kotlin; enabling built-in Kotlin requires Flutter 3.47 or newer.
 
@@ -44,7 +55,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  v_video_compressor: ^2.2.0
+  v_video_compressor: ^3.0.0
   file_picker: ^8.0.0 # For video selection
   # OR
   image_picker: ^1.0.7 # Alternative for video selection

@@ -4,11 +4,17 @@ library;
 /// Dimension alignment handling behavior
 enum VDimensionHandling {
   autoAlign(
-      'AUTO_ALIGN', 'Auto align dimensions to 16-pixel boundaries when needed'),
+    'AUTO_ALIGN',
+    'Auto align dimensions to 16-pixel boundaries when needed',
+  ),
   letterbox(
-      'LETTERBOX', 'Add black bars to maintain aspect ratio during alignment'),
+    'LETTERBOX',
+    'Add black bars to maintain aspect ratio during alignment',
+  ),
   exact(
-      'EXACT', 'Keep exact dimensions without alignment (may cause artifacts)');
+    'EXACT',
+    'Keep exact dimensions without alignment (may cause artifacts)',
+  );
 
   const VDimensionHandling(this.value, this.description);
 
@@ -154,12 +160,7 @@ class VVideoCropRect {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'left': left,
-      'top': top,
-      'right': right,
-      'bottom': bottom,
-    };
+    return {'left': left, 'top': top, 'right': right, 'bottom': bottom};
   }
 
   factory VVideoCropRect.fromMap(Map<String, dynamic> map) {
@@ -167,7 +168,10 @@ class VVideoCropRect {
       final value = map[key];
       if (value is! num) {
         throw ArgumentError.value(
-            value, key, 'Crop coordinate must be numeric');
+          value,
+          key,
+          'Crop coordinate must be numeric',
+        );
       }
       return value.toDouble();
     }
@@ -477,17 +481,17 @@ class VVideoAdvancedConfig {
       customHeight: map['customHeight']?.toInt(),
       frameRate: map['frameRate']?.toDouble(),
       videoCodec: VVideoCodec.values.cast<VVideoCodec?>().firstWhere(
-            (codec) => codec?.value == map['videoCodec'],
-            orElse: () => null,
-          ),
+        (codec) => codec?.value == map['videoCodec'],
+        orElse: () => null,
+      ),
       audioCodec: VAudioCodec.values.cast<VAudioCodec?>().firstWhere(
-            (codec) => codec?.value == map['audioCodec'],
-            orElse: () => null,
-          ),
+        (codec) => codec?.value == map['audioCodec'],
+        orElse: () => null,
+      ),
       encodingSpeed: VEncodingSpeed.values.cast<VEncodingSpeed?>().firstWhere(
-            (speed) => speed?.value == map['encodingSpeed'],
-            orElse: () => null,
-          ),
+        (speed) => speed?.value == map['encodingSpeed'],
+        orElse: () => null,
+      ),
       crf: map['crf']?.toInt(),
       twoPassEncoding: map['twoPassEncoding'],
       hardwareAcceleration: map['hardwareAcceleration'],
@@ -513,11 +517,12 @@ class VVideoAdvancedConfig {
       aggressiveCompression: map['aggressiveCompression'],
       noiseReduction: map['noiseReduction'],
       monoAudio: map['monoAudio'],
-      dimensionHandling:
-          VDimensionHandling.values.cast<VDimensionHandling?>().firstWhere(
-                (handling) => handling?.value == map['dimensionHandling'],
-                orElse: () => null,
-              ),
+      dimensionHandling: VDimensionHandling.values
+          .cast<VDimensionHandling?>()
+          .firstWhere(
+            (handling) => handling?.value == map['dimensionHandling'],
+            orElse: () => null,
+          ),
     );
   }
 

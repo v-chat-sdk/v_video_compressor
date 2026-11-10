@@ -2,6 +2,11 @@
 
 A simple, clean example app demonstrating how to use the `v_video_compressor` plugin.
 
+The example uses the local 3.0.1 plugin. On Android, progress comes from
+Media3 when available, with elapsed-time and output-size estimation as a
+fallback. Progress never moves backwards, and 100% is reserved for completion.
+The callbacks and global progress stream share this behavior.
+
 ## Features
 
 - **Simple Interface**: Single page with clean, intuitive design
@@ -93,13 +98,15 @@ final result = await _compressor.compressVideo(
 ```bash
 cd example
 flutter pub get
-flutter run
+flutter devices
+flutter run -d <physical-device-id>
 ```
 
 ## Requirements
 
+- **Flutter**: 3.47.0 or newer, with Dart 3.13.0 or newer
 - **Android**: API level 21 (Android 5.0) or higher
-- **iOS**: iOS 11.0 or higher
+- **iOS**: iOS 15.0 or higher for this example, with CocoaPods or SwiftPM
 - **Permissions**: Storage access for file picking and saving
 
 This example demonstrates how to integrate video compression into your Flutter app with minimal code and maximum clarity.

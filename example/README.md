@@ -102,6 +102,21 @@ flutter devices
 flutter run -d <physical-device-id>
 ```
 
+## Android Validation
+
+Run the plugin unit tests and lint for the plugin and example modules:
+
+```bash
+cd example/android
+./gradlew :v_video_compressor:testDebugUnitTest :v_video_compressor:lintDebug :app:lintDebug
+```
+
+CI uses these explicit module paths. An unqualified `lintDebug` also runs lint
+inside every third-party plugin. `video_trimmer` 6.0.0 currently reports an
+upstream `UnsafeOptInUsageError` for missing Media3 opt-in annotations in its
+Java implementation. The example APK builds successfully; this repository's
+checks cover the compressor and example source.
+
 ## Requirements
 
 - **Flutter**: 3.47.0 or newer, with Dart 3.13.0 or newer

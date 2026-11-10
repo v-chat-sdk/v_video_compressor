@@ -17,6 +17,9 @@
   3.0.1. Retain the Flutter 3.47 / Dart 3.13 requirements and all native fixes
   shipped in 3.0.0; this patch adds no API, channel, permission, or minimum
   platform changes.
+- Document the example's SDK and iOS 15 requirements and scope Android CI lint
+  to the compressor and example modules. The example README records the
+  upstream Media3 opt-in lint issue in `video_trimmer` 6.0.0.
 
 ## 3.0.0 - 2026-11-04
 

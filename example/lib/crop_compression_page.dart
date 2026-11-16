@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:v_video_compressor/v_video_compressor.dart';
 import 'package:video_trimmer/video_trimmer.dart';

@@ -11,16 +11,26 @@ This package is a Flutter plugin with three implementation layers:
 
 Keep platform contracts synchronized. A new model field or channel method normally requires matching Dart, Kotlin, and Swift updates.
 
-## Build, Test, and Development Commands
+## Flutter 3.50 verification workflow
 
-- `flutter pub get` installs package dependencies.
-- `flutter analyze` runs the configured `flutter_lints` checks.
-- `flutter test` runs the Dart unit suite.
-- `dart format .` formats Dart sources and tests.
-- `cd example && flutter pub get && flutter run` launches the example on a device or simulator.
-- `cd example && flutter test integration_test` runs device-backed integration tests.
-- `cd example/android && ./gradlew assembleDebug lintDebug` compiles and lints Android code.
-- `cd example && flutter build ios --no-codesign` validates iOS compilation on macOS; run `pod install` in `example/ios/` first when dependencies change.
+Use the installed project-compatible Flutter 3.50/Dart 3.14 SDK. Keep direct `material_ui`/`cupertino_ui` dependencies consistent with their imports; design widgets no longer come from `flutter/material.dart` or `flutter/cupertino.dart`. Prefer neutral Flutter libraries when design widgets are unnecessary. Preserve this project's architecture and public contracts.
+
+Resolve dependencies from each affected package root with `flutter pub get --no-example`. For a design migration, run `dart fix --apply --code=migrate_design_widgets` and review its output. After every code edit, run these commands sequentially from the affected package root:
+
+```sh
+dart fix --apply
+dart format .
+flutter analyze
+```
+
+Fix and format must finish before analysis or tests. Analyzer-only verification is the default. Run a focused test or build when requested or needed to prove a specific behavior change; choose the smallest useful check. Passing analysis does not prove runtime, provider, native linking, or integration behavior. Never suppress maintained-source diagnostics to obtain a pass. Preserve tool-owned generated files.
+
+This repository has no existing web runner. Do not add one merely to validate a migration.
+
+Use a reachable physical Android device only when web is unsupported and device execution is requested. No emulator or simulator is authorized. This Linux VPS cannot execute native iOS/macOS builds or assume access to a phone attached to the Mac. Observe the global 500 MB download rule and preserve existing edits, credentials, caches, and running sessions. Do not push, publish, deploy, or run native builds without task authorization.
+
+Use one handwritten class/widget per file; a StatefulWidget and its paired State may share a file. Apply SOLID without speculative abstractions. Keep UI, coordination, domain behavior, transport, persistence, and provider mechanics in their existing layers; use explicit types and correct async ownership/disposal. Do not impose another project’s state management or architecture.
+
 
 ## Coding Style & Naming Conventions
 
